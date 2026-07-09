@@ -53,6 +53,12 @@ together, and a single mistake has a real cost — one wrong code locks that ass
 - After a successful unlock, viewing is a **single reveal**: leaving/closing the
   page re-locks it.
 
+### Timing defaults
+- **UnlockSession TTL:** 10 minutes from `startedAt`, then abandoned.
+- **View token TTL:** 2 minutes, single-use.
+- **Signed R2 URL TTL:** 2 minutes.
+- **Lockout duration:** 24 hours from the wrong entry.
+
 ## 4. Architecture
 
 - **Next.js (App Router, React, TypeScript)** — full-stack: UI + API routes.
@@ -129,17 +135,17 @@ The server owns all state; the client renders it.
 1. **Open** `/unlock/<unlockToken>` (via link or pasted asset ID) → server loads
    the Brocode.
    - If `lockedUntil > now` → **Locked** screen with live countdown. No input.
-   - Else → create/resume an `UnlockSession`; show the code-input GUI with
-     progress "0 of N keys turned."
+   - Else → start a fresh `UnlockSession`; show the code-input GUI with
+     progress "0 of N keys turned." (N = total participants, creator included.)
 2. **Submit a code** (one at a time, POST to server):
    - **Matches an unmatched participant** → add to `matchedParticipantIds`;
      return updated progress.
    - **No match** → **detonate**: set `lockedUntil = now + 24h`, delete the
      session, return the "locked for 24h" screen. Single strike.
 3. **All N matched** → server issues a short-lived, single-use **view token**.
-4. **Abandoned session** → an `UnlockSession` past `expiresAt` (or on page reload)
-   is discarded; progress restarts. Abandoning carries **no penalty** — only a
-   *wrong code* detonates.
+4. **Abandoned session** → an `UnlockSession` past `expiresAt` is discarded, and
+   progress restarts fresh on the next load. Abandoning carries **no penalty** —
+   only a *wrong code* detonates.
 
 ### 6.4 View
 With the view token, the client fetches a short-lived signed R2 URL and displays
