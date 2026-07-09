@@ -47,7 +47,9 @@ together, and a single mistake has a real cost — one wrong code locks that ass
 - Web only, responsive (desktop + mobile browsers).
 - Accepted media: images (`jpg`, `png`, `gif`, `webp`) and video (`mp4`, `webm`),
   **≤ 5 MB** per file. One asset per Brocode.
-- Codes are **6-digit numeric**, generated server-side, stored **hashed**.
+- Codes are **6-digit numeric**, generated server-side, stored **encrypted at
+  rest** (authenticated symmetric encryption) so they remain recoverable for the
+  Manage view and resend actions.
 - Contacts per Brocode: **1–10** (MVP cap).
 - No Brocode expiry — persists until the creator deletes it.
 - After a successful unlock, viewing is a **single reveal**: leaving/closing the
@@ -95,7 +97,7 @@ renders server-owned state and is never trusted.
 | `role` | enum | `creator` \| `contact` |
 | `name` | string | Display name for progress UI |
 | `email` | string? | Null for creator (not emailed) |
-| `codeHash` | string | Argon2/bcrypt hash of the 6-digit code |
+| `codeEncrypted` | string | AES-256-GCM ciphertext of the 6-digit code (recoverable via server key) |
 | `createdAt` | timestamp | |
 
 ### UnlockSession
@@ -158,8 +160,10 @@ removed.
 
 ## 7. Security
 
-- **Codes hashed at rest** (argon2 or bcrypt). Brute force is defended primarily by
-  the single-strike 24h lockout: one wrong guess costs a day, scoped to that asset.
+- **Codes encrypted at rest** (AES-256-GCM, key from a server-side env secret).
+  Codes are recoverable (needed for the Manage view and resend) but never stored in
+  plaintext. Brute force is defended primarily by the single-strike 24h lockout: one
+  wrong guess costs a day, scoped to that asset.
 - **Unguessable tokens** — `managementToken`, `unlockToken`, and view tokens are
   long, random, and cryptographically unguessable. Because the asset is only
   findable via `unlockToken`, strangers cannot trigger the lockout on a target
