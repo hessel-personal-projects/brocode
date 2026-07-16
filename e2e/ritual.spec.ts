@@ -1,6 +1,5 @@
 import { test, expect, type APIRequestContext } from '@playwright/test'
 import path from 'node:path'
-import fs from 'node:fs'
 
 type Captured = { to: string; code: string; unlockUrl: string }
 
