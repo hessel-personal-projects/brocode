@@ -13,7 +13,7 @@ type UnlockState =
   | { status: 'notfound' }
 
 function Countdown({ until }: { until: string }) {
-  const [now, setNow] = useState(Date.now())
+  const [now, setNow] = useState(() => Date.now())
   useEffect(() => {
     const t = setInterval(() => setNow(Date.now()), 1000)
     return () => clearInterval(t)
@@ -38,6 +38,8 @@ export default function UnlockRitual() {
     setState(await res.json())
   }, [unlockToken])
 
+  // intentional: fetch the server-owned unlock state once on mount
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { load() }, [load])
 
   useEffect(() => {
@@ -78,6 +80,11 @@ export default function UnlockRitual() {
 
   if (state.status === 'expired') {
     return <main className="p-6">Session expired. <button onClick={load} className="underline">Restart</button></main>
+  }
+
+  if (state.status === 'unlocked') {
+    // the effect above redirects to /view/<viewToken>; render nothing meanwhile
+    return <main className="p-6">Unlocking…</main>
   }
 
   return (
