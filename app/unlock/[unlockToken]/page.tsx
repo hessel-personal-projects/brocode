@@ -26,7 +26,6 @@ export default function UnlockRitual() {
     setState(await res.json())
   }, [unlockToken])
 
-  // intentional: fetch the server-owned unlock state once on mount
   // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { load() }, [load])
 

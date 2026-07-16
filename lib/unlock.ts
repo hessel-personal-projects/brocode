@@ -1,8 +1,7 @@
 import { prisma } from './prisma'
-import { UNLOCK_SESSION_TTL_MS } from './constants'
+import { UNLOCK_SESSION_TTL_MS, LOCKOUT_MS, VIEW_TOKEN_TTL_MS } from './constants'
 import type { UnlockState } from './types'
 import { verifyCode, generateToken } from './crypto'
-import { LOCKOUT_MS, VIEW_TOKEN_TTL_MS } from './constants'
 
 type SessionShape = { matchedParticipantIds: unknown; expiresAt: Date }
 

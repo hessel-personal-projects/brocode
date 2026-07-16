@@ -1,7 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createBrocode, ValidationError } from '@/lib/create'
+import { MAX_FILE_BYTES } from '@/lib/validation'
 
 export async function POST(req: NextRequest) {
+  const cl = Number(req.headers.get('content-length') ?? 0)
+  if (cl > MAX_FILE_BYTES + 65536) {
+    return NextResponse.json({ error: 'request too large' }, { status: 413 })
+  }
+
   try {
     const form = await req.formData()
     const file = form.get('file')

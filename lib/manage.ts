@@ -66,7 +66,7 @@ export async function deleteBrocode(managementToken: string): Promise<boolean> {
   const brocode = await prisma.brocode.findUnique({ where: { managementToken } })
   if (!brocode) return false
 
-  await removeAsset(brocode.assetObjectKey)
   await prisma.brocode.delete({ where: { id: brocode.id } })
+  await removeAsset(brocode.assetObjectKey)
   return true
 }
