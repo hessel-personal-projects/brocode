@@ -3,6 +3,9 @@ import { defineConfig } from '@playwright/test'
 export default defineConfig({
   testDir: './e2e',
   timeout: 30_000,
+  // Absorb the first-request cold-start flake (Colima DB connect latency after a
+  // fresh dev-server boot). Extra retries in CI where every run is a cold start.
+  retries: process.env.CI ? 2 : 1,
   expect: { timeout: 10_000 },
   use: { baseURL: 'http://localhost:3000' },
   webServer: {
