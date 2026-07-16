@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useParams } from 'next/navigation'
 
 type ViewResult = { assetKind: 'image' | 'video'; signedUrl: string }
@@ -9,19 +9,23 @@ export default function ViewPage() {
   const { viewToken } = useParams<{ viewToken: string }>()
   const [result, setResult] = useState<ViewResult | null>(null)
   const [gone, setGone] = useState(false)
+  // Guard against React StrictMode double-invocation: the view token is single-use,
+  // so a second fetch would get 410 and incorrectly show the "Re-locked" screen.
+  // We do NOT use an `active` flag here: StrictMode calls the cleanup between the
+  // two mounts, which would set active=false and cause the first fetch's result to
+  // be discarded (the page would be stuck on "Revealing…").  fetchedRef is the
+  // single source of truth — only one fetch ever fires, so stale-state risk is nil.
+  const fetchedRef = useRef(false)
 
   useEffect(() => {
-    let active = true
+    if (fetchedRef.current) return
+    fetchedRef.current = true
     fetch(`/api/view/${viewToken}`)
       .then(async (res) => {
-        if (!active) return
         if (!res.ok) return setGone(true)
         setResult(await res.json())
       })
-      .catch(() => active && setGone(true))
-    return () => {
-      active = false
-    }
+      .catch(() => setGone(true))
   }, [viewToken])
 
   if (gone) {

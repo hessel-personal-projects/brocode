@@ -38,6 +38,9 @@ export default function UnlockRitual() {
     e.preventDefault()
     if (!/^\d{6}$/.test(code)) return
     setBusy(true)
+    // Clear optimistically so the next participant can start typing immediately
+    // while the API call is in flight; `code` is captured in closure for the fetch body.
+    setCode('')
     try {
       const res = await fetch(`/api/unlock/${unlockToken}/code`, {
         method: 'POST',
@@ -45,7 +48,6 @@ export default function UnlockRitual() {
         body: JSON.stringify({ code }),
       })
       const next: UnlockState = await res.json()
-      setCode('')
       if (next.status === 'expired') return load()
       setState(next)
     } finally {
