@@ -4,7 +4,7 @@ import { prisma } from '@/lib/prisma'
 import { resetDb } from '@/tests/helpers/db'
 import { clearCapturedEmails, getCapturedEmails } from '@/lib/email/capture'
 import { uploadAsset } from './storage'
-import { encryptCode, generateToken, decryptCode } from './crypto'
+import { encryptCode, generateToken } from './crypto'
 import { objectKeyFor } from './validation'
 
 const png = Buffer.from(
