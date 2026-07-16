@@ -1,0 +1,55 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum AssetKind {
+  image
+  video
+}
+
+enum Role {
+  creator
+  contact
+}
+
+model Brocode {
+  id               String          @id @default(uuid())
+  managementToken  String          @unique
+  unlockToken      String          @unique
+  assetObjectKey   String
+  assetContentType String
+  assetKind        AssetKind
+  title            String?
+  lockedUntil      DateTime?
+  createdAt        DateTime        @default(now())
+  participants     Participant[]
+  sessions         UnlockSession[]
+}
+
+model Participant {
+  id            String   @id @default(uuid())
+  brocodeId     String
+  brocode       Brocode  @relation(fields: [brocodeId], references: [id], onDelete: Cascade)
+  role          Role
+  name          String
+  email         String?
+  codeEncrypted String
+  createdAt     DateTime @default(now())
+}
+
+model UnlockSession {
+  id                    String    @id @default(uuid())
+  brocodeId             String
+  brocode               Brocode   @relation(fields: [brocodeId], references: [id], onDelete: Cascade)
+  matchedParticipantIds Json      @default("[]")
+  startedAt             DateTime  @default(now())
+  expiresAt             DateTime
+  completedAt           DateTime?
+  viewToken             String?   @unique
+  viewTokenExpiresAt    DateTime?
+  viewTokenUsedAt       DateTime?
+}
