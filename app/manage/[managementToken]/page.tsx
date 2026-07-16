@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
+import { Countdown } from '@/app/components/Countdown'
 
 type Contact = { id: string; name: string; email: string }
 type ManageData = {
@@ -56,7 +57,7 @@ export default function ManagePage() {
 
       {data.locked && data.lockedUntil && (
         <p className="rounded bg-red-50 p-3 text-red-800" data-testid="locked-notice">
-          Locked until {new Date(data.lockedUntil).toLocaleString()}
+          Locked — unlocks in <Countdown until={data.lockedUntil} />
         </p>
       )}
 
