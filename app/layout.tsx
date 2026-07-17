@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist_Mono } from "next/font/google";
+import { CRTOverlay } from "@/app/components/CRTOverlay";
 import "./globals.css";
 
 const geistMono = Geist_Mono({
@@ -23,6 +24,7 @@ export default function RootLayout({
         className="min-h-full flex flex-col"
         style={{ background: "var(--color-bg)", color: "var(--color-phosphor)" }}
       >
+        <CRTOverlay />
         {children}
       </body>
     </html>

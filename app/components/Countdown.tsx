@@ -12,5 +12,16 @@ export function Countdown({ until }: { until: string }) {
   const h = Math.floor(ms / 3_600_000)
   const m = Math.floor((ms % 3_600_000) / 60_000)
   const s = Math.floor((ms % 60_000) / 1000)
-  return <span data-testid="countdown">{h}h {m}m {s}s</span>
+  return (
+    <span
+      data-testid="countdown"
+      className="font-bold tabular-nums tracking-widest"
+      style={{
+        color: 'var(--color-amber)',
+        textShadow: '0 0 4px var(--color-amber), 0 0 12px var(--color-amber)',
+      }}
+    >
+      {h}h {m}m {s}s
+    </span>
+  )
 }
