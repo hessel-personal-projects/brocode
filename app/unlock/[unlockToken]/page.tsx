@@ -190,6 +190,23 @@ export default function UnlockRitual() {
         )}
       </AnimatePresence>
 
+      {/* Detonation typewriter — visible while still in in_progress state */}
+      {detonating && detonationText && (
+        <motion.div
+          className="fixed inset-0 flex items-center justify-center pointer-events-none"
+          style={{ zIndex: 200 }}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+        >
+          <span
+            className="text-3xl font-bold tracking-widest uppercase"
+            style={{ color: 'var(--color-alert)', textShadow: '0 0 8px var(--color-alert), 0 0 24px var(--color-alert)' }}
+          >
+            {detonationText}
+          </span>
+        </motion.div>
+      )}
+
       <PageHeader
         title="AUTHORIZATION TERMINAL"
         right={

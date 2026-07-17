@@ -70,7 +70,12 @@ export default function ViewPage() {
       <div className="relative flex-1 flex flex-col items-center justify-center p-8 overflow-hidden">
         <AnimatePresence>
           {phase === 'scanning' && (
-            <>
+            <motion.div
+              key="scanning"
+              className="absolute inset-0 flex items-center justify-center pointer-events-none"
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.3 }}
+            >
               <motion.div
                 aria-hidden="true"
                 className="absolute left-0 right-0 pointer-events-none"
@@ -84,18 +89,16 @@ export default function ViewPage() {
                 animate={{ top: '100%' }}
                 transition={{ duration: 0.8, ease: 'linear' }}
               />
-              <motion.p
+              <p
                 className="text-xl font-bold tracking-widest uppercase"
                 style={{
                   color: 'var(--color-phosphor)',
                   textShadow: '0 0 4px var(--color-phosphor), 0 0 20px var(--color-phosphor)',
                 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.3 }}
               >
                 DECRYPTING PAYLOAD…
-              </motion.p>
-            </>
+              </p>
+            </motion.div>
           )}
         </AnimatePresence>
 
