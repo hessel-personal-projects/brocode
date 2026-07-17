@@ -2,7 +2,14 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
+import { AnimatePresence, motion } from 'framer-motion'
 import { Countdown } from '@/app/components/Countdown'
+import { PageHeader } from '@/app/components/PageHeader'
+import { Panel } from '@/app/components/Panel'
+import { GlowButton } from '@/app/components/GlowButton'
+import { CodeDisplay } from '@/app/components/CodeDisplay'
+import { TerminalReveal } from '@/app/components/TerminalReveal'
+import { StatusIndicator } from '@/app/components/StatusIndicator'
 
 type Contact = { id: string; name: string; email: string }
 type ManageData = {
@@ -20,6 +27,8 @@ export default function ManagePage() {
   const [notFound, setNotFound] = useState(false)
   const [deleted, setDeleted] = useState(false)
   const [notice, setNotice] = useState<string | null>(null)
+  const [copied, setCopied] = useState(false)
+  const [resentIds, setResentIds] = useState<Set<string>>(new Set())
 
   const load = useCallback(async () => {
     const res = await fetch(`/api/brocodes/manage/${managementToken}`)
@@ -36,59 +45,174 @@ export default function ManagePage() {
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ participantId: id }),
     })
+    if (res.ok) {
+      setResentIds((s) => new Set(s).add(id))
+      setTimeout(() => setResentIds((s) => { const n = new Set(s); n.delete(id); return n }), 1500)
+    }
     setNotice(res.ok ? 'Email re-sent' : 'Resend failed')
   }
 
   async function remove() {
+    // Keep window.confirm() — E2E test uses page.on('dialog', d => d.accept())
     if (!confirm('Delete this Brocode and its media permanently?')) return
     const res = await fetch(`/api/brocodes/manage/${managementToken}`, { method: 'DELETE' })
     if (res.ok) setDeleted(true)
   }
 
-  if (notFound) return <main className="p-6" data-testid="notfound">Not found.</main>
-  if (deleted) return <main className="p-6" data-testid="deleted">Deleted.</main>
-  if (!data) return <main className="p-6">Loading…</main>
+  function copyLink(url: string) {
+    navigator.clipboard.writeText(url)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 1500)
+  }
+
+  if (notFound) {
+    return (
+      <div className="flex flex-col h-screen overflow-hidden" data-testid="notfound">
+        <PageHeader title="MISSION CONTROL" right={<StatusIndicator label="NOT FOUND" color="alert" />} />
+        <div className="flex-1 flex items-center justify-center">
+          <span className="text-xs tracking-widest uppercase" style={{ color: 'var(--color-alert)' }}>
+            Mission not found.
+          </span>
+        </div>
+      </div>
+    )
+  }
+
+  if (deleted) {
+    return (
+      <div className="flex flex-col h-screen overflow-hidden" data-testid="deleted">
+        <PageHeader title="MISSION CONTROL" right={<StatusIndicator label="MISSION DELETED" color="alert" />} />
+        <div className="flex-1 flex items-center justify-center">
+          <span className="text-xs tracking-widest uppercase" style={{ color: 'var(--color-phosphor-dim)' }}>
+            Mission data purged.
+          </span>
+        </div>
+      </div>
+    )
+  }
+
+  if (!data) {
+    return (
+      <div className="flex flex-col h-screen overflow-hidden">
+        <PageHeader title="MISSION CONTROL" right={<StatusIndicator label="LOADING" color="amber" />} />
+        <div className="flex-1 flex items-center justify-center">
+          <span className="text-xs tracking-widest uppercase animate-pulse" style={{ color: 'var(--color-phosphor-dim)' }}>
+            Loading…
+          </span>
+        </div>
+      </div>
+    )
+  }
 
   const unlockUrl = `${window.location.origin}/unlock/${data.unlockToken}`
 
   return (
-    <main className="mx-auto max-w-lg p-6 space-y-4">
-      <h1 className="text-2xl font-bold">Manage Brocode{data.title ? `: ${data.title}` : ''}</h1>
+    <div className="flex flex-col h-screen overflow-hidden">
+      <PageHeader
+        title={`MISSION CONTROL${data.title ? ` — ${data.title.toUpperCase()}` : ''}`}
+        right={
+          <StatusIndicator
+            label={data.locked ? 'LOCKOUT ACTIVE' : 'OPERATIONAL'}
+            color={data.locked ? 'alert' : 'phosphor'}
+          />
+        }
+      />
+      <TerminalReveal>
+        <div className="flex-1 flex flex-col overflow-auto">
+          {/* Lockout banner */}
+          <AnimatePresence>
+            {data.locked && data.lockedUntil && (
+              <motion.div
+                data-testid="locked-notice"
+                className="px-6 py-3 flex items-center gap-4 border-b shrink-0"
+                style={{ background: 'rgba(255,34,34,0.08)', borderColor: 'var(--color-alert)', color: 'var(--color-alert)' }}
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+              >
+                <span className="text-xs tracking-widest uppercase font-bold">⚠ LOCKOUT ACTIVE</span>
+                <Countdown until={data.lockedUntil} />
+              </motion.div>
+            )}
+          </AnimatePresence>
 
-      {data.locked && data.lockedUntil && (
-        <p className="rounded bg-red-50 p-3 text-red-800" data-testid="locked-notice">
-          Locked — unlocks in <Countdown until={data.lockedUntil} />
-        </p>
-      )}
+          {/* Top two panels */}
+          <div
+            className="grid grid-cols-2 border-b shrink-0"
+            style={{ borderColor: 'var(--color-panel-border)' }}
+          >
+            <Panel label="YOUR AUTHORIZATION CODE">
+              {/* sr-only span for E2E text assertion */}
+              <span data-testid="creator-code" className="sr-only">{data.creatorCode}</span>
+              <CodeDisplay code={data.creatorCode} />
+            </Panel>
+            <Panel label="UNLOCK ENDPOINT">
+              <div className="space-y-3">
+                <p className="text-xs break-all leading-relaxed" style={{ color: 'var(--color-phosphor-dim)' }}>
+                  {unlockUrl}
+                </p>
+                <GlowButton onClick={() => copyLink(unlockUrl)}>
+                  {copied ? '✓ COPIED' : '[COPY LINK]'}
+                </GlowButton>
+              </div>
+            </Panel>
+          </div>
 
-      <div>
-        <p className="text-sm text-gray-600">Your code</p>
-        <p data-testid="creator-code" className="text-3xl font-bold tracking-widest">{data.creatorCode}</p>
-      </div>
+          {/* Operative roster */}
+          <Panel label="OPERATIVE ROSTER" className="flex-1">
+            {notice && (
+              <p data-testid="notice" className="mb-3 text-xs tracking-widest" style={{ color: 'var(--color-phosphor-dim)' }}>
+                {notice}
+              </p>
+            )}
+            <table className="w-full text-sm">
+              <thead>
+                <tr
+                  className="text-xs tracking-widest uppercase border-b"
+                  style={{ borderColor: 'var(--color-panel-border)', color: 'var(--color-phosphor-dim)' }}
+                >
+                  <th className="text-left py-2 w-8">#</th>
+                  <th className="text-left py-2">Name</th>
+                  <th className="text-left py-2">Email</th>
+                  <th className="text-right py-2">Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {data.contacts.map((c, i) => (
+                  <tr key={c.id} className="border-b" style={{ borderColor: 'var(--color-panel-border)' }}>
+                    <td className="py-2 text-xs" style={{ color: 'var(--color-phosphor-dim)' }}>
+                      {String(i + 1).padStart(2, '0')}
+                    </td>
+                    <td className="py-2">{c.name}</td>
+                    <td className="py-2 text-xs" style={{ color: 'var(--color-phosphor-dim)' }}>{c.email}</td>
+                    <td className="py-2 text-right">
+                      <GlowButton onClick={() => resend(c.id)} data-testid={`resend-${c.id}`}>
+                        {resentIds.has(c.id) ? '✓ SENT' : '[RESEND AUTHORIZATION]'}
+                      </GlowButton>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </Panel>
 
-      <div>
-        <p className="text-sm text-gray-600">Shared unlock link</p>
-        <a className="break-all text-blue-700 underline" href={unlockUrl}>{unlockUrl}</a>
-      </div>
-
-      <div>
-        <p className="text-sm text-gray-600">Contacts</p>
-        <ul className="space-y-2">
-          {data.contacts.map((c) => (
-            <li key={c.id} className="flex items-center justify-between gap-2">
-              <span>{c.name} — {c.email}</span>
-              <button onClick={() => resend(c.id)} className="rounded border px-2 py-1 text-sm"
-                data-testid={`resend-${c.id}`}>Resend</button>
-            </li>
-          ))}
-        </ul>
-      </div>
-
-      {notice && <p data-testid="notice" className="text-sm text-green-700">{notice}</p>}
-
-      <button onClick={remove} className="rounded bg-red-700 px-4 py-2 text-white" data-testid="delete">
-        Delete Brocode
-      </button>
-    </main>
+          {/* Danger zone */}
+          <div
+            className="m-4 p-4 border shrink-0"
+            style={{ borderColor: 'var(--color-alert)' }}
+          >
+            <div
+              className="text-xs tracking-widest uppercase mb-3 font-bold"
+              style={{ color: 'var(--color-alert)', textShadow: '0 0 4px var(--color-alert)' }}
+            >
+              PERMANENT DELETION
+            </div>
+            <GlowButton color="alert" onClick={remove} data-testid="delete">
+              [DELETE BROCODE]
+            </GlowButton>
+          </div>
+        </div>
+      </TerminalReveal>
+    </div>
   )
 }
