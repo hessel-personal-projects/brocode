@@ -1,3 +1,5 @@
+'use client'
+
 export function CodeDisplay({ code }: { code: string }) {
   return (
     <div className="flex gap-2 items-end flex-wrap" data-testid="code-display">
