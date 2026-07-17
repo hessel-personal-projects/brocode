@@ -29,6 +29,7 @@ export function GlowButton({
   'data-testid': testId,
 }: GlowButtonProps) {
   const [flashing, setFlashing] = useState(false)
+  const [hovered, setHovered] = useState(false)
   const c = colorVar[color]
 
   function handleClick() {
@@ -41,6 +42,8 @@ export function GlowButton({
     <button
       type={type}
       onClick={handleClick}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
       disabled={disabled}
       data-testid={testId}
       className={`px-4 py-2 text-xs tracking-widest uppercase border transition-all duration-150 disabled:opacity-40 cursor-pointer ${className}`}
@@ -49,7 +52,11 @@ export function GlowButton({
         color: flashing ? 'var(--color-bg)' : c,
         background: flashing ? c : 'transparent',
         textShadow: flashing ? 'none' : `0 0 4px ${c}`,
-        boxShadow: `0 0 ${flashing ? '16px' : '4px'} ${c}`,
+        boxShadow: flashing
+          ? `0 0 16px ${c}`
+          : hovered
+            ? `0 0 12px ${c}, inset 0 0 4px ${c}`
+            : `0 0 4px ${c}`,
       }}
     >
       {children}
