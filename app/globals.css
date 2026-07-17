@@ -8,6 +8,8 @@
   --color-amber: #ffb000;
   --color-alert: #ff2222;
   --color-panel-border: #0d2a0d;
+  --color-crt-scanline: rgba(0, 0, 0, 0.15);
+  --color-crt-vignette: rgba(0, 0, 0, 0.6);
 }
 
 @theme inline {

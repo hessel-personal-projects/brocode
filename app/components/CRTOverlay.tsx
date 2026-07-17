@@ -9,7 +9,7 @@ export function CRTOverlay() {
           zIndex: 9999,
           pointerEvents: 'none',
           background:
-            'repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.15) 2px, rgba(0,0,0,0.15) 4px)',
+            'repeating-linear-gradient(0deg, transparent, transparent 2px, var(--color-crt-scanline) 2px, var(--color-crt-scanline) 4px)',
         }}
       />
       <div
@@ -20,7 +20,7 @@ export function CRTOverlay() {
           zIndex: 9998,
           pointerEvents: 'none',
           background:
-            'radial-gradient(ellipse at center, transparent 60%, rgba(0,0,0,0.6) 100%)',
+            'radial-gradient(ellipse at center, transparent 60%, var(--color-crt-vignette) 100%)',
         }}
       />
     </>
