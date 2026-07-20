@@ -7,13 +7,14 @@ async function createBrocode(request: import('@playwright/test').APIRequestConte
   const res = await request.post('/api/brocodes', {
     multipart: {
       creatorName: 'Alice',
+      creatorEmail: 'alice@example.com',
       title: 'Pic',
       contacts: JSON.stringify([{ name: 'Bob', email: 'bob@example.com' }]),
       file: { name: 'tiny.png', mimeType: 'image/png', buffer: file },
     },
   })
   expect(res.ok()).toBeTruthy()
-  return res.json() as Promise<{ managementToken: string; unlockToken: string; creatorCode: string }>
+  return res.json() as Promise<{ managementToken: string; unlockToken: string }>
 }
 
 test('wrong code shows the 24h locked screen with a countdown', async ({ page, request }) => {
