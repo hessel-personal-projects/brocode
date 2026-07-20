@@ -19,7 +19,7 @@ async function seedCompletedSession(opts: { used?: boolean; expired?: boolean } 
       assetObjectKey: FIXTURE_KEY,
       assetContentType: 'image/png',
       assetKind: 'image',
-      participants: { create: [{ role: 'creator', name: 'Alice', email: null, codeEncrypted: 'x' }] },
+      participants: { create: [{ role: 'creator', name: 'Alice', email: 'alice@example.com', codeEncrypted: 'x' }] },
     },
   })
   const viewToken = generateToken()

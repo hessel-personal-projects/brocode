@@ -1,9 +1,8 @@
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { createBrocode, ValidationError } from './create'
 import { prisma } from '@/lib/prisma'
 import { resetDb } from '@/tests/helpers/db'
 import { clearCapturedEmails, getCapturedEmails } from '@/lib/email/capture'
-import { decryptCode } from './crypto'
 import { MAX_FILE_BYTES } from './validation'
 
 const pngBuffer = Buffer.from(
@@ -14,6 +13,7 @@ const pngBuffer = Buffer.from(
 function input(overrides = {}) {
   return {
     creatorName: 'Alice',
+    creatorEmail: 'alice@example.com',
     title: 'Secret',
     contacts: [
       { name: 'Bob', email: 'bob@example.com' },
@@ -26,29 +26,29 @@ function input(overrides = {}) {
 
 describe('createBrocode', () => {
   beforeEach(async () => {
+    vi.stubEnv('EMAIL_TRANSPORT', 'capture')
     await resetDb()
     clearCapturedEmails()
   })
 
-  it('creates a brocode with creator + contacts and emails only contacts', async () => {
+  it('creates a brocode with creator + contacts and emails all participants', async () => {
     const result = await createBrocode(input())
     expect(result.managementToken).toBeTruthy()
-    expect(result.unlockToken).toBeTruthy()
-    expect(result.creatorCode).toMatch(/^\d{6}$/)
 
-    const brocode = await prisma.brocode.findUnique({
-      where: { unlockToken: result.unlockToken },
+    const brocode = await prisma.brocode.findFirst({
+      where: { managementToken: result.managementToken },
       include: { participants: true },
     })
     expect(brocode?.participants).toHaveLength(3)
 
     const creator = brocode!.participants.find((p) => p.role === 'creator')!
-    expect(creator.email).toBeNull()
-    expect(decryptCode(creator.codeEncrypted)).toBe(result.creatorCode)
+    expect(creator.email).toBe('alice@example.com')
 
     const captured = getCapturedEmails()
-    expect(captured.map((e) => e.to).sort()).toEqual(['bob@example.com', 'cara@example.com'])
-    expect(captured.every((e) => e.unlockUrl.includes(result.unlockToken))).toBe(true)
+    expect(captured.map((e) => e.to).sort()).toEqual(['alice@example.com', 'bob@example.com', 'cara@example.com'])
+    expect(
+      captured.filter((e) => e.to !== 'alice@example.com').every((e) => e.unlockUrl.includes(brocode!.unlockToken)),
+    ).toBe(true)
   })
 
   it('rejects an unsupported file type', async () => {

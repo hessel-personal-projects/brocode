@@ -15,7 +15,7 @@ describe('prisma round-trip', () => {
         assetKind: 'image',
         participants: {
           create: [
-            { role: 'creator', name: 'Alice', email: null, codeEncrypted: 'x' },
+            { role: 'creator', name: 'Alice', email: 'alice@example.com', codeEncrypted: 'x' },
             { role: 'contact', name: 'Bob', email: 'bob@example.com', codeEncrypted: 'y' },
           ],
         },

@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { getManageData, resendContactEmail, deleteBrocode } from './manage'
 import { prisma } from '@/lib/prisma'
 import { resetDb } from '@/tests/helpers/db'
@@ -25,7 +25,7 @@ async function seed() {
       title: 'Secret',
       participants: {
         create: [
-          { role: 'creator', name: 'Alice', email: null, codeEncrypted: encryptCode('111111') },
+          { role: 'creator', name: 'Alice', email: 'alice@example.com', codeEncrypted: encryptCode('111111') },
           { role: 'contact', name: 'Bob', email: 'bob@x.com', codeEncrypted: encryptCode('222222') },
         ],
       },
@@ -43,12 +43,12 @@ describe('getManageData', () => {
   it('returns the decrypted creator code, contacts, unlock token, and unlocked status', async () => {
     const b = await seed()
     const data = await getManageData(b.managementToken)
-    expect(data?.creatorCode).toBe('111111')
+    expect(data?.creator.email).toBe('alice@example.com')
     expect(data?.title).toBe('Secret')
     expect(data?.locked).toBe(false)
     expect(data?.lockedUntil).toBeNull()
     expect(data?.unlockToken).toBe(b.unlockToken)
-    expect(data?.contacts).toEqual([{ id: b.participants.find((p) => p.role === 'contact')!.id, name: 'Bob', email: 'bob@x.com' }])
+    expect(data?.contacts).toEqual([{ id: b.participants.find((p) => p.role === 'contact')!.id, name: 'Bob', email: 'bob@x.com', emailDeliveryStatus: 'PENDING' }])
   })
 
   it('reports locked with lockedUntil when in the future', async () => {
@@ -67,6 +67,7 @@ describe('getManageData', () => {
 
 describe('resendContactEmail', () => {
   beforeEach(async () => {
+    vi.stubEnv('EMAIL_TRANSPORT', 'capture')
     await resetDb()
     clearCapturedEmails()
   })

@@ -16,7 +16,7 @@ async function seed() {
       assetKind: 'image',
       participants: {
         create: [
-          { role: 'creator', name: 'Alice', email: null, codeEncrypted: encryptCode('111111') },
+          { role: 'creator', name: 'Alice', email: 'alice@example.com', codeEncrypted: encryptCode('111111') },
           { role: 'contact', name: 'Bob', email: 'b@x.com', codeEncrypted: encryptCode('222222') },
           { role: 'contact', name: 'Cara', email: 'c@x.com', codeEncrypted: encryptCode('333333') },
         ],

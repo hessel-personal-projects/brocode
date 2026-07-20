@@ -15,7 +15,7 @@ async function seed(opts: { lockedUntil?: Date } = {}) {
       lockedUntil: opts.lockedUntil ?? null,
       participants: {
         create: [
-          { role: 'creator', name: 'Alice', email: null, codeEncrypted: encryptCode('111111') },
+          { role: 'creator', name: 'Alice', email: 'alice@example.com', codeEncrypted: encryptCode('111111') },
           { role: 'contact', name: 'Bob', email: 'bob@x.com', codeEncrypted: encryptCode('222222') },
         ],
       },

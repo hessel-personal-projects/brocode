@@ -19,7 +19,7 @@ describe('assetInfoFor', () => {
 })
 
 describe('createSchema', () => {
-  const base = { creatorName: 'Alice', contacts: [{ name: 'Bob', email: 'bob@x.com' }] }
+  const base = { creatorName: 'Alice', creatorEmail: 'alice@example.com', contacts: [{ name: 'Bob', email: 'bob@x.com' }] }
 
   it('accepts 1 contact', () => {
     expect(createSchema.safeParse(base).success).toBe(true)
