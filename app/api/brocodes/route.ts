@@ -27,6 +27,7 @@ export async function POST(req: NextRequest) {
 
     const result = await createBrocode({
       creatorName: String(form.get('creatorName') ?? ''),
+      creatorEmail: String(form.get('creatorEmail') ?? ''),
       title: titleRaw ? String(titleRaw) : undefined,
       contacts,
       file: { buffer, contentType: file.type, size: file.size },

@@ -25,6 +25,7 @@ export const contactSchema = z.object({
 
 export const createSchema = z.object({
   creatorName: z.string().trim().min(1, 'creator name required'),
+  creatorEmail: z.email('invalid creator email'),
   title: z.string().trim().max(200).optional(),
   contacts: z.array(contactSchema).min(1, 'at least 1 contact').max(10, 'at most 10 contacts'),
 })
