@@ -16,6 +16,13 @@ enum Role {
   contact
 }
 
+enum EmailDeliveryStatus {
+  PENDING
+  DELIVERED
+  BOUNCED
+  FAILED
+}
+
 model Brocode {
   id               String          @id @default(uuid())
   managementToken  String          @unique
@@ -31,14 +38,16 @@ model Brocode {
 }
 
 model Participant {
-  id            String   @id @default(uuid())
-  brocodeId     String
-  brocode       Brocode  @relation(fields: [brocodeId], references: [id], onDelete: Cascade)
-  role          Role
-  name          String
-  email         String?
-  codeEncrypted String
-  createdAt     DateTime @default(now())
+  id                  String              @id @default(uuid())
+  brocodeId           String
+  brocode             Brocode             @relation(fields: [brocodeId], references: [id], onDelete: Cascade)
+  role                Role
+  name                String
+  email               String
+  codeEncrypted       String
+  resendEmailId       String?
+  emailDeliveryStatus EmailDeliveryStatus @default(PENDING)
+  createdAt           DateTime            @default(now())
 }
 
 model UnlockSession {
