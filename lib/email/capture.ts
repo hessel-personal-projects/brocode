@@ -1,11 +1,12 @@
-import type { EmailService, ContactCodeEmail } from './types'
-import { contactCodeSubject } from './template'
+import type { EmailService, ContactCodeEmail, CreatorManageEmail } from './types'
+import { contactCodeSubject, creatorManageSubject } from './template'
 
 export interface CapturedEmail {
   to: string
   subject: string
   code: string
   unlockUrl: string
+  manageUrl?: string
   sentAt: string
 }
 
@@ -25,7 +26,7 @@ export function clearCapturedEmails(): void {
 }
 
 export class CaptureEmailService implements EmailService {
-  async sendContactCode(msg: ContactCodeEmail): Promise<void> {
+  async sendContactCode(msg: ContactCodeEmail): Promise<{ resendEmailId: string | null }> {
     emails().push({
       to: msg.to,
       subject: contactCodeSubject(msg),
@@ -33,5 +34,18 @@ export class CaptureEmailService implements EmailService {
       unlockUrl: msg.unlockUrl,
       sentAt: new Date().toISOString(),
     })
+    return { resendEmailId: null }
+  }
+
+  async sendCreatorEmail(msg: CreatorManageEmail): Promise<{ resendEmailId: string | null }> {
+    emails().push({
+      to: msg.to,
+      subject: creatorManageSubject(msg),
+      code: msg.code,
+      unlockUrl: msg.unlockUrl,
+      manageUrl: msg.managementUrl,
+      sentAt: new Date().toISOString(),
+    })
+    return { resendEmailId: null }
   }
 }

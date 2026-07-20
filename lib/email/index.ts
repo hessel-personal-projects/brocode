@@ -7,4 +7,4 @@ export function getEmailService(): EmailService {
   return new CaptureEmailService()
 }
 
-export type { EmailService, ContactCodeEmail } from './types'
+export type { EmailService, ContactCodeEmail, CreatorManageEmail, EmailDeliveryStatus } from './types'
