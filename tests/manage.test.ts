@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach, vi } from 'vitest'
 import fs from 'node:fs'
 import path from 'node:path'
 import { createBrocode } from '@/lib/create'
@@ -16,7 +16,10 @@ const BASE_INPUT = {
 }
 
 describe('getManageData', () => {
-  beforeEach(resetDb)
+  beforeEach(async () => {
+    vi.stubEnv('EMAIL_TRANSPORT', 'capture')
+    await resetDb()
+  })
 
   it('returns creator email and delivery status', async () => {
     const { managementToken } = await createBrocode(BASE_INPUT)
@@ -36,7 +39,10 @@ describe('getManageData', () => {
 })
 
 describe('updateDeliveryStatus', () => {
-  beforeEach(resetDb)
+  beforeEach(async () => {
+    vi.stubEnv('EMAIL_TRANSPORT', 'capture')
+    await resetDb()
+  })
 
   it('updates participant status by resendEmailId', async () => {
     const { managementToken } = await createBrocode(BASE_INPUT)
@@ -60,7 +66,10 @@ describe('updateDeliveryStatus', () => {
 })
 
 describe('updateAndResendEmail', () => {
-  beforeEach(resetDb)
+  beforeEach(async () => {
+    vi.stubEnv('EMAIL_TRANSPORT', 'capture')
+    await resetDb()
+  })
 
   it('updates contact email and resets delivery status to PENDING', async () => {
     const { managementToken } = await createBrocode(BASE_INPUT)

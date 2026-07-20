@@ -110,34 +110,30 @@ export async function updateAndResendEmail(
   const unlockUrl = `${process.env.APP_BASE_URL}/unlock/${brocode.unlockToken}`
   const code = decryptCode(participant.codeEncrypted)
 
-  try {
-    let resendEmailId: string | null = null
-    if (participant.role === 'creator') {
-      const manageUrl = `${process.env.APP_BASE_URL}/manage/${managementToken}`
-      const result = await emailSvc.sendCreatorEmail({
-        to: newEmail,
-        creatorName: participant.name,
-        code,
-        managementUrl: manageUrl,
-        unlockUrl,
-        title: brocode.title ?? undefined,
-      })
-      resendEmailId = result.resendEmailId
-    } else {
-      const result = await emailSvc.sendContactCode({
-        to: newEmail,
-        contactName: participant.name,
-        code,
-        unlockUrl,
-        title: brocode.title ?? undefined,
-      })
-      resendEmailId = result.resendEmailId
-    }
-    if (resendEmailId) {
-      await prisma.participant.update({ where: { id: participantId }, data: { resendEmailId } })
-    }
-  } catch (err) {
-    console.error(`failed to resend email to ${newEmail}:`, err)
+  let resendEmailId: string | null = null
+  if (participant.role === 'creator') {
+    const manageUrl = `${process.env.APP_BASE_URL}/manage/${managementToken}`
+    const result = await emailSvc.sendCreatorEmail({
+      to: newEmail,
+      creatorName: participant.name,
+      code,
+      managementUrl: manageUrl,
+      unlockUrl,
+      title: brocode.title ?? undefined,
+    })
+    resendEmailId = result.resendEmailId
+  } else {
+    const result = await emailSvc.sendContactCode({
+      to: newEmail,
+      contactName: participant.name,
+      code,
+      unlockUrl,
+      title: brocode.title ?? undefined,
+    })
+    resendEmailId = result.resendEmailId
+  }
+  if (resendEmailId) {
+    await prisma.participant.update({ where: { id: participantId }, data: { resendEmailId } })
   }
 
   return true
