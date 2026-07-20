@@ -14,7 +14,10 @@ async function createBrocode(request: import('@playwright/test').APIRequestConte
     },
   })
   expect(res.ok()).toBeTruthy()
-  return res.json() as Promise<{ managementToken: string; unlockToken: string }>
+  const { managementToken } = (await res.json()) as { managementToken: string }
+  const manageRes = await request.get(`/api/brocodes/manage/${managementToken}`)
+  const { unlockToken } = (await manageRes.json()) as { unlockToken: string }
+  return { unlockToken }
 }
 
 test('wrong code shows the 24h locked screen with a countdown', async ({ page, request }) => {
