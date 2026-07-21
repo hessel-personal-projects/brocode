@@ -71,10 +71,10 @@ export default function ManagePage() {
     data.contacts.every((c) => isTerminal(c.emailDeliveryStatus))
 
   useEffect(() => {
-    if (allTerminal) return
+    if (allTerminal || deleted) return
     const id = setInterval(load, 5000)
     return () => clearInterval(id)
-  }, [allTerminal, load])
+  }, [allTerminal, deleted, load])
 
   async function resend(participantId: string) {
     const res = await fetch(`/api/brocodes/manage/${managementToken}/resend`, {

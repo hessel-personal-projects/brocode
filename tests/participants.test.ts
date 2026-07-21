@@ -35,7 +35,7 @@ describe('PATCH /api/brocodes/manage/[managementToken]/participants/[id]', () =>
     })
     expect(res.status).toBe(400)
     const body = await res.json()
-    expect(body.error).toBe('email required')
+    expect(body.error).toBe('valid email required')
   })
 
   it('returns 400 when email is empty string', async () => {
