@@ -97,7 +97,7 @@ export default function CreatePage() {
                     className="text-xs tracking-widest uppercase block mb-1"
                     style={{ color: 'var(--color-phosphor-dim)' }}
                   >
-                    Creator Email
+                    Operative E-Mail
                   </span>
                   <input
                     required
@@ -135,7 +135,7 @@ export default function CreatePage() {
                     className="text-xs tracking-widest uppercase mb-2"
                     style={{ color: 'var(--color-phosphor-dim)' }}
                   >
-                    Operatives (1–10)
+                    Other Operatives (1–10)
                   </legend>
                   {contacts.map((c, i) => (
                     <div key={i} className="flex gap-2 items-center">
