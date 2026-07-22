@@ -67,7 +67,7 @@ export default function ViewPage() {
           />
         }
       />
-      <div className="relative flex-1 flex flex-col items-center justify-center p-8 overflow-hidden">
+      <div className="relative flex-1 flex flex-col items-center justify-center p-4 sm:p-8 overflow-hidden">
         <AnimatePresence>
           {phase === 'scanning' && (
             <motion.div
