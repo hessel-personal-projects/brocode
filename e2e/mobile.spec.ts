@@ -89,30 +89,15 @@ test('unlock ritual has no horizontal overflow at 375px', async ({ page, request
   expect(overflow).toBe(false)
 })
 
-test('view page content area has reduced padding at 375px', async ({ page, request }) => {
-  const file = fs.readFileSync(path.join(__dirname, 'fixtures/tiny.png'))
-  const createRes = await request.post('/api/brocodes', {
-    multipart: {
-      creatorName: 'Alice',
-      creatorEmail: 'alice@example.com',
-      contacts: JSON.stringify([{ name: 'Bob', email: 'bob@example.com' }]),
-      file: { name: 'tiny.png', mimeType: 'image/png', buffer: file },
-    },
-  })
-  const body = await createRes.json()
-
-  // Fetch viewToken by going through the unlock flow via API
-  const manageRes = await request.get(`/api/brocodes/manage/${body.managementToken}`)
-  const { unlockToken } = await manageRes.json()
-
-  const unlockRes = await request.post(`/api/unlock/${unlockToken}/code`, {
-    data: { code: '000000' }, // Any code — we only need the viewToken from the unlock endpoint response
-  })
-
-  // Skip rest of test if unlock requires correct code (integration env)
-  // We just verify no horizontal overflow on the scanning phase
+test('view page relocked state has no horizontal overflow at 375px', async ({ page }) => {
+  // The scanning/revealed phases with the updated p-4 sm:p-8 padding require a valid viewToken;
+  // the relocked state confirms the page renders without overflow on mobile.
   await page.setViewportSize(MOBILE)
-  await page.goto(`/unlock/${unlockToken}`)
+  // An invalid viewToken causes the API to return 404, which transitions the page
+  // to the 'gone' phase (data-testid="relocked") immediately.
+  await page.goto('/view/invalid-viewtoken-for-mobile-test')
+
+  await expect(page.getByTestId('relocked')).toBeVisible()
 
   const overflow = await page.evaluate(
     () => document.documentElement.scrollWidth > document.documentElement.clientWidth,
