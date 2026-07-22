@@ -24,7 +24,7 @@ type UnlockState =
 function gridClass(count: number) {
   if (count <= 2) return 'grid-cols-1'
   if (count <= 4) return 'grid-cols-2'
-  return 'grid-cols-3'
+  return 'grid-cols-2 sm:grid-cols-3'
 }
 
 export default function UnlockRitual() {
@@ -218,7 +218,7 @@ export default function UnlockRitual() {
             <span className="text-xs tracking-widest uppercase" style={{ color: 'var(--color-phosphor)' }}>
               [{state.matchedCount}/{state.total} AUTHORIZED]
             </span>
-            <div className="w-32 h-0.5 relative" style={{ background: 'var(--color-panel-border)' }}>
+            <div className="hidden sm:block w-32 h-0.5 relative" style={{ background: 'var(--color-panel-border)' }}>
               <motion.div
                 className="absolute inset-y-0 left-0"
                 style={{ background: 'var(--color-phosphor)', boxShadow: '0 0 6px var(--color-phosphor)' }}

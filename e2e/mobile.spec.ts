@@ -52,3 +52,39 @@ test('manage page shows operative cards without horizontal overflow at 375px', a
   )
   expect(overflow).toBe(false)
 })
+
+test('unlock ritual has no horizontal overflow at 375px', async ({ page, request }) => {
+  const file = fs.readFileSync(path.join(__dirname, 'fixtures/tiny.png'))
+  const res = await request.post('/api/brocodes', {
+    multipart: {
+      creatorName: 'Alice',
+      creatorEmail: 'alice@example.com',
+      contacts: JSON.stringify([
+        { name: 'Bob', email: 'bob@example.com' },
+        { name: 'Carol', email: 'carol@example.com' },
+        { name: 'Dave', email: 'dave@example.com' },
+        { name: 'Eve', email: 'eve@example.com' },
+        { name: 'Frank', email: 'frank@example.com' },
+      ]),
+      file: { name: 'tiny.png', mimeType: 'image/png', buffer: file },
+    },
+  })
+  const body = await res.json()
+
+  // Fetch the unlock token from the manage endpoint
+  const manageRes = await request.get(`/api/brocodes/manage/${body.managementToken}`)
+  const manageBody = await manageRes.json()
+  const unlockToken = manageBody.unlockToken
+
+  await page.setViewportSize(MOBILE)
+  await page.goto(`/unlock/${unlockToken}`)
+
+  // Participant panels are visible
+  await expect(page.getByTestId('participant-Bob')).toBeVisible()
+
+  // No horizontal overflow
+  const overflow = await page.evaluate(
+    () => document.documentElement.scrollWidth > document.documentElement.clientWidth,
+  )
+  expect(overflow).toBe(false)
+})
