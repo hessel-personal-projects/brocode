@@ -10,7 +10,7 @@ export function PageHeader({ title, right }: PageHeaderProps) {
       style={{ borderColor: 'var(--color-panel-border)' }}
     >
       <span
-        className="text-sm tracking-widest uppercase font-bold"
+        className="text-sm tracking-widest uppercase font-bold truncate min-w-0 flex-1 mr-2"
         style={{
           color: 'var(--color-phosphor)',
           textShadow: '0 0 4px var(--color-phosphor), 0 0 12px var(--color-phosphor)',
