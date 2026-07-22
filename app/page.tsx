@@ -57,21 +57,21 @@ export default function CreatePage() {
   }
 
   return (
-    <div className="flex flex-col h-screen overflow-hidden">
+    <div className="flex flex-col min-h-screen sm:h-screen sm:overflow-hidden">
       <PageHeader
         title="BROCODE LAUNCH SYSTEM v1.0"
         right={<StatusIndicator label={busy ? 'ARMING…' : 'SYSTEM READY'} color="phosphor" />}
       />
       <TerminalReveal>
         <motion.div
-          className="flex-1 flex flex-col overflow-hidden"
+          className="flex-1 flex flex-col"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.4 }}
         >
-          <div className="flex-1 grid grid-cols-2 overflow-hidden">
+          <div className="grid grid-cols-1 sm:flex-1 sm:grid-cols-2 sm:overflow-hidden">
             {/* Left: payload parameters */}
-            <Panel label="PAYLOAD PARAMETERS" className="overflow-y-auto">
+            <Panel label="PAYLOAD PARAMETERS" className="sm:overflow-y-auto">
               <div className="space-y-4">
                 <label className="block">
                   <span
@@ -152,7 +152,7 @@ export default function CreatePage() {
                         data-testid={`contact-name-${i}`}
                         onFocus={() => setFocused(`cn${i}`)}
                         onBlur={() => setFocused(null)}
-                        className="w-1/2 bg-transparent border p-2 text-sm outline-none"
+                        className="flex-1 min-w-0 bg-transparent border p-2 text-sm outline-none"
                         style={inputStyle(focused === `cn${i}`)}
                       />
                       <input
@@ -162,7 +162,7 @@ export default function CreatePage() {
                         data-testid={`contact-email-${i}`}
                         onFocus={() => setFocused(`ce${i}`)}
                         onBlur={() => setFocused(null)}
-                        className="w-1/2 bg-transparent border p-2 text-sm outline-none"
+                        className="flex-1 min-w-0 bg-transparent border p-2 text-sm outline-none"
                         style={inputStyle(focused === `ce${i}`)}
                       />
                       {contacts.length > 1 && (
@@ -199,7 +199,7 @@ export default function CreatePage() {
             </Panel>
 
             {/* Right: payload */}
-            <Panel label="PAYLOAD" className="overflow-y-auto">
+            <Panel label="PAYLOAD" className="sm:overflow-y-auto">
               <label className="block cursor-pointer">
                 <input
                   required
