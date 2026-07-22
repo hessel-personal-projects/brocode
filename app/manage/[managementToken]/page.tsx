@@ -259,8 +259,65 @@ export default function ManagePage() {
               )}
             </div>
 
+            {/* Mobile operative cards — hidden on sm+ */}
+            <div className="sm:hidden">
+              {data.contacts.map((c, i) => (
+                <div
+                  key={c.id}
+                  data-testid="mobile-operative-card"
+                  className="py-3 border-b"
+                  style={{ borderColor: 'var(--color-panel-border)' }}
+                >
+                  <div className="flex items-center gap-2 mb-1">
+                    <span
+                      className="text-xs tabular-nums shrink-0"
+                      style={{ color: 'var(--color-phosphor-dim)' }}
+                    >
+                      {String(i + 1).padStart(2, '0')}
+                    </span>
+                    <span className="flex-1 text-sm" style={{ color: 'var(--color-phosphor)' }}>
+                      {c.name}
+                    </span>
+                    <DeliveryBadge status={c.emailDeliveryStatus} />
+                  </div>
+                  <div className="mb-2">
+                    {c.emailDeliveryStatus === 'BOUNCED' || c.emailDeliveryStatus === 'FAILED' ? (
+                      <input
+                        type="email"
+                        value={editEmails[c.id] ?? c.email}
+                        onChange={(e) =>
+                          setEditEmails((prev) => ({ ...prev, [c.id]: e.target.value }))
+                        }
+                        className="w-full bg-transparent border p-1 text-sm outline-none"
+                        style={{
+                          borderColor: 'var(--color-panel-border)',
+                          color: 'var(--color-phosphor)',
+                          caretColor: 'var(--color-phosphor)',
+                        }}
+                      />
+                    ) : (
+                      <span className="text-xs" style={{ color: 'var(--color-phosphor-dim)' }}>
+                        {c.email}
+                      </span>
+                    )}
+                  </div>
+                  <div>
+                    {c.emailDeliveryStatus === 'BOUNCED' || c.emailDeliveryStatus === 'FAILED' ? (
+                      <GlowButton onClick={() => saveEmail(c.id)}>
+                        [UPDATE & RESEND]
+                      </GlowButton>
+                    ) : (
+                      <GlowButton onClick={() => resend(c.id)}>
+                        {resentIds.has(c.id) ? '✓ SENT' : '[RESEND AUTHORIZATION]'}
+                      </GlowButton>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+
             {/* Contacts table */}
-            <table className="w-full text-sm">
+            <table className="hidden sm:table w-full text-sm">
               <thead>
                 <tr
                   className="text-xs tracking-widest uppercase border-b"
