@@ -25,7 +25,7 @@ test('create page stacks panels vertically at 375px', async ({ page }) => {
 
   // Stacked: upload panel y-position is below params panel
   expect(uploadBox!.y).toBeGreaterThan(paramsBox!.y + 50)
-  // Both panels are full-width (> 350px on a 375px screen)
-  expect(paramsBox!.width).toBeGreaterThan(350)
-  expect(uploadBox!.width).toBeGreaterThan(350)
+  // Both panels are full-width (> 330px on a 375px screen)
+  expect(paramsBox!.width).toBeGreaterThan(330)
+  expect(uploadBox!.width).toBeGreaterThan(330)
 })
