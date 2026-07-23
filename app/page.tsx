@@ -107,34 +107,38 @@ export default function CreatePage() {
       const manageUrl = `${window.location.origin}/manage/${managementToken}#${keyFragment}`
 
       // 5. Dispatch emails for each participant
-      for (const pw of participantsWithCodes) {
-        const created = createdParticipants.find((p: { email: string }) => p.email === pw.email)
-        if (!created) continue
+      try {
+        for (const pw of participantsWithCodes) {
+          const created = createdParticipants.find((p: { email: string }) => p.email === pw.email)
+          if (!created) continue
 
-        const isCreator = pw.role === 'creator'
-        const subject = isCreator
-          ? creatorManageSubject({ creatorName: pw.name, title: title || undefined, code: pw.code, managementUrl: manageUrl, unlockUrl, to: pw.email })
-          : contactCodeSubject({ contactName: pw.name, title: title || undefined, code: pw.code, unlockUrl, to: pw.email })
-        const html = isCreator
-          ? renderCreatorManageHtml({ creatorName: pw.name, code: pw.code, managementUrl: manageUrl, unlockUrl, to: pw.email, title: title || undefined })
-          : renderContactCodeHtml({ contactName: pw.name, code: pw.code, unlockUrl, to: pw.email, title: title || undefined })
+          const isCreator = pw.role === 'creator'
+          const subject = isCreator
+            ? creatorManageSubject({ creatorName: pw.name, title: title || undefined, code: pw.code, managementUrl: manageUrl, unlockUrl, to: pw.email })
+            : contactCodeSubject({ contactName: pw.name, title: title || undefined, code: pw.code, unlockUrl, to: pw.email })
+          const html = isCreator
+            ? renderCreatorManageHtml({ creatorName: pw.name, code: pw.code, managementUrl: manageUrl, unlockUrl, to: pw.email, title: title || undefined })
+            : renderContactCodeHtml({ contactName: pw.name, code: pw.code, unlockUrl, to: pw.email, title: title || undefined })
 
-        const dispatchRes = await fetch('/api/dispatch-email', {
-          method: 'POST',
-          headers: {
-            'content-type': 'application/json',
-            authorization: `Bearer ${managementToken}`,
-          },
-          body: JSON.stringify({ to: pw.email, subject, html }),
-        })
-        if (dispatchRes.ok) {
-          const { messageId } = await dispatchRes.json()
-          await fetch(`/api/brocodes/manage/${managementToken}/participants/${created.id}/message-id`, {
+          const dispatchRes = await fetch('/api/dispatch-email', {
             method: 'POST',
-            headers: { 'content-type': 'application/json' },
-            body: JSON.stringify({ messageId }),
+            headers: {
+              'content-type': 'application/json',
+              authorization: `Bearer ${managementToken}`,
+            },
+            body: JSON.stringify({ to: pw.email, subject, html }),
           })
+          if (dispatchRes.ok) {
+            const { messageId } = await dispatchRes.json()
+            await fetch(`/api/brocodes/manage/${managementToken}/participants/${created.id}/message-id`, {
+              method: 'POST',
+              headers: { 'content-type': 'application/json' },
+              body: JSON.stringify({ messageId }),
+            })
+          }
         }
+      } catch {
+        // Ignore email dispatch errors - navigation should still happen
       }
 
       // 6. Navigate to manage page with key in fragment
