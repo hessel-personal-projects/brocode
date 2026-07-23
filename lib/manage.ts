@@ -103,6 +103,35 @@ export async function updateDeliveryStatus(
   })
 }
 
+export async function registerMessageId(
+  managementToken: string,
+  participantId: string,
+  messageId: string,
+): Promise<boolean> {
+  const brocode = await prisma.brocode.findUnique({ where: { managementToken } })
+  if (!brocode) return false
+  const result = await prisma.participant.updateMany({
+    where: { id: participantId, brocodeId: brocode.id },
+    data: { emailMessageId: messageId, emailDeliveryStatus: 'PENDING' },
+  })
+  return result.count > 0
+}
+
+export async function updateCodeHash(
+  managementToken: string,
+  participantId: string,
+  codeHash: string,
+  codeSalt: string,
+): Promise<boolean> {
+  const brocode = await prisma.brocode.findUnique({ where: { managementToken } })
+  if (!brocode) return false
+  const result = await prisma.participant.updateMany({
+    where: { id: participantId, brocodeId: brocode.id },
+    data: { codeHash, codeSalt },
+  })
+  return result.count > 0
+}
+
 export async function deleteBrocode(managementToken: string): Promise<boolean> {
   const brocode = await prisma.brocode.findUnique({ where: { managementToken } })
   if (!brocode) return false
