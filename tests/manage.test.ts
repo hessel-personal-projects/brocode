@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest'
 import fs from 'node:fs'
 import path from 'node:path'
 import { createBrocode } from '@/lib/create'
-import { getManageData, updateDeliveryStatus, updateAndResendEmail } from '@/lib/manage'
+import { getManageData, updateDeliveryStatus, updateEmail } from '@/lib/manage'
 import { prisma } from '@/lib/prisma'
 import { resetDb } from './helpers/db'
 import { makeCreatorHash, makeCodeHash } from './helpers/seed'
@@ -67,7 +67,7 @@ describe('updateDeliveryStatus', () => {
   })
 })
 
-describe('updateAndResendEmail', () => {
+describe('updateEmail', () => {
   beforeEach(async () => {
     vi.stubEnv('EMAIL_TRANSPORT', 'capture')
     await resetDb()
@@ -83,7 +83,7 @@ describe('updateAndResendEmail', () => {
       data: { emailDeliveryStatus: 'BOUNCED' },
     })
 
-    const ok = await updateAndResendEmail(managementToken, contact!.id, 'bob-new@example.com')
+    const ok = await updateEmail(managementToken, contact!.id, 'bob-new@example.com')
 
     expect(ok).toBe(true)
     const updated = await prisma.participant.findUnique({ where: { id: contact!.id } })
@@ -92,7 +92,7 @@ describe('updateAndResendEmail', () => {
   })
 
   it('returns false for unknown managementToken', async () => {
-    const ok = await updateAndResendEmail('bad-token', 'bad-id', 'x@example.com')
+    const ok = await updateEmail('bad-token', 'bad-id', 'x@example.com')
     expect(ok).toBe(false)
   })
 })

@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest'
-import { getManageData, deleteBrocode } from './manage'
+import { getManageData, deleteBrocode, updateEmail, updateCodeHash } from './manage'
 import { prisma } from '@/lib/prisma'
 import { resetDb } from '@/tests/helpers/db'
 import { clearCapturedEmails } from '@/lib/email/capture'
@@ -81,5 +81,34 @@ describe('deleteBrocode', () => {
 
   it('returns false for an unknown token', async () => {
     expect(await deleteBrocode('nope')).toBe(false)
+  })
+})
+
+describe('updateEmail', () => {
+  beforeEach(resetDb)
+
+  it('updates the email address', async () => {
+    const b = await seed()
+    const contact = b.participants.find((p) => p.role === 'contact')!
+    const ok = await updateEmail(b.managementToken, contact.id, 'new@x.com')
+    expect(ok).toBe(true)
+    const updated = await prisma.participant.findUnique({ where: { id: contact.id } })
+    expect(updated?.email).toBe('new@x.com')
+    expect(updated?.emailDeliveryStatus).toBe('PENDING')
+  })
+})
+
+describe('updateCodeHash', () => {
+  beforeEach(resetDb)
+
+  it('updates the code hash and salt', async () => {
+    const b = await seed()
+    const contact = b.participants.find((p) => p.role === 'contact')!
+    const { codeHash, codeSalt } = makeCodeHash('999999')
+    const ok = await updateCodeHash(b.managementToken, contact.id, codeHash, codeSalt)
+    expect(ok).toBe(true)
+    const updated = await prisma.participant.findUnique({ where: { id: contact.id } })
+    expect(updated?.codeHash).toBe(codeHash)
+    expect(updated?.codeSalt).toBe(codeSalt)
   })
 })

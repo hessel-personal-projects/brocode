@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import https from 'node:https'
 import crypto from 'node:crypto'
-import { updateDeliveryStatus } from '@/lib/manage'
-import type { EmailDeliveryStatus } from '@/lib/email/types'
+import { updateDeliveryStatus, type EmailDeliveryStatus } from '@/lib/manage'
 
 const STATUS_MAP: Partial<Record<string, EmailDeliveryStatus>> = {
   Delivery: 'DELIVERED',
