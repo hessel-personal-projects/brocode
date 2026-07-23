@@ -1,54 +1,18 @@
-import dotenv from 'dotenv'
-import path from 'node:path'
-import crypto from 'node:crypto'
-import { PrismaPg } from '@prisma/adapter-pg'
-import { PrismaClient } from '@prisma/client'
-import { decryptCode } from '../lib/crypto'
-
-dotenv.config({ path: path.resolve(__dirname, '../.env.local') })
-
-const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL! })
-const prisma = new PrismaClient({ adapter })
-
-async function hashCode(plaintext: string): Promise<{ codeHash: string; codeSalt: string }> {
-  const salt = crypto.randomBytes(16)
-  const hash = crypto.pbkdf2Sync(plaintext, salt, 100_000, 32, 'sha256')
-  return { codeHash: hash.toString('base64'), codeSalt: salt.toString('base64') }
-}
-
-async function main() {
-  const participants = await prisma.participant.findMany({
-    where: { codeHash: null },
-  })
-  console.log(`Migrating ${participants.length} participants…`)
-
-  let skipped = 0
-  for (const p of participants) {
-    try {
-      const plaintext = decryptCode(p.codeEncrypted)
-      const { codeHash, codeSalt } = await hashCode(plaintext)
-
-      // verify round-trip before writing
-      const verify = crypto.pbkdf2Sync(plaintext, Buffer.from(codeSalt, 'base64'), 100_000, 32, 'sha256').toString('base64')
-      if (!crypto.timingSafeEqual(Buffer.from(codeHash), Buffer.from(verify))) {
-        throw new Error(`Hash verification failed for participant ${p.id}`)
-      }
-
-      await prisma.participant.update({
-        where: { id: p.id },
-        data: {
-          codeHash,
-          codeSalt,
-          emailMessageId: p.resendEmailId ?? null,
-        },
-      })
-      console.log(`  ✓ ${p.id}`)
-    } catch (err) {
-      console.error(`⚠ Skipping ${p.id}: ${err instanceof Error ? err.message : String(err)}`)
-      skipped++
-    }
-  }
-  console.log(`Migration complete. Migrated: ${participants.length - skipped}, Skipped: ${skipped}`)
-}
-
-main().catch(console.error).finally(() => prisma.$disconnect())
+/**
+ * One-time migration script: encrypted codes → PBKDF2 hashes.
+ *
+ * THIS SCRIPT HAS ALREADY BEEN RUN. The `codeEncrypted` column no longer
+ * exists in the schema (dropped in the finalize-code-hash migration).
+ * Running this script again will fail immediately with a Prisma validation
+ * error. It is kept only for historical reference.
+ *
+ * If you need to re-run this migration on a database that still has
+ * `codeEncrypted` data, restore the schema to the state after
+ * migration 20260723091251_add_code_hash_cols (Task 1) and before
+ * migration 20260723113303_finalize_code_hash (Task 3).
+ */
+console.error(
+  'ERROR: This migration has already been applied. The codeEncrypted column no longer exists.\n' +
+  'See the file header comment for details.'
+)
+process.exit(1)

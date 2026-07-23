@@ -37,7 +37,7 @@ async function verifySns(msg: Record<string, string>): Promise<boolean> {
   const certUrl = msg.SigningCertURL ?? ''
   if (!certUrl.match(/^https:\/\/sns\.[a-z0-9-]+\.amazonaws\.com\/.*\.pem$/)) return false
   const cert = await fetchCert(certUrl)
-  const verify = crypto.createVerify('SHA1withRSA')
+  const verify = crypto.createVerify('RSA-SHA1')
   verify.update(buildSigningString(msg))
   return verify.verify(cert, msg.Signature, 'base64')
 }
@@ -55,6 +55,11 @@ export async function POST(req: NextRequest) {
   if (process.env.NODE_ENV !== 'test') {
     const valid = await verifySns(msg).catch(() => false)
     if (!valid) return NextResponse.json({ error: 'invalid signature' }, { status: 400 })
+  }
+
+  const allowedTopicArn = process.env.SNS_TOPIC_ARN
+  if (allowedTopicArn && msg.TopicArn !== allowedTopicArn) {
+    return NextResponse.json({ error: 'unauthorized topic' }, { status: 403 })
   }
 
   // Auto-confirm SNS subscription
