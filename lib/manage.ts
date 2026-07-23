@@ -69,20 +69,17 @@ export async function resendContactEmail(managementToken: string, participantId:
 
   await prisma.participant.update({
     where: { id: participantId },
-    data: { emailDeliveryStatus: 'PENDING', resendEmailId: null },
+    data: { emailDeliveryStatus: 'PENDING' },
   })
 
   const unlockUrl = `${process.env.APP_BASE_URL}/unlock/${brocode.unlockToken}`
-  const { resendEmailId } = await getEmailService().sendContactCode({
+  await getEmailService().sendContactCode({
     to: participant.email,
     contactName: participant.name,
     code: decryptCode(participant.codeEncrypted),
     unlockUrl,
     title: brocode.title ?? undefined,
   })
-  if (resendEmailId) {
-    await prisma.participant.update({ where: { id: participantId }, data: { resendEmailId } })
-  }
 
   return true
 }
@@ -103,17 +100,16 @@ export async function updateAndResendEmail(
 
   await prisma.participant.update({
     where: { id: participantId },
-    data: { email: newEmail, emailDeliveryStatus: 'PENDING', resendEmailId: null },
+    data: { email: newEmail, emailDeliveryStatus: 'PENDING' },
   })
 
   const emailSvc = getEmailService()
   const unlockUrl = `${process.env.APP_BASE_URL}/unlock/${brocode.unlockToken}`
   const code = decryptCode(participant.codeEncrypted)
 
-  let resendEmailId: string | null = null
   if (participant.role === 'creator') {
     const manageUrl = `${process.env.APP_BASE_URL}/manage/${managementToken}`
-    const result = await emailSvc.sendCreatorEmail({
+    await emailSvc.sendCreatorEmail({
       to: newEmail,
       creatorName: participant.name,
       code,
@@ -121,19 +117,14 @@ export async function updateAndResendEmail(
       unlockUrl,
       title: brocode.title ?? undefined,
     })
-    resendEmailId = result.resendEmailId
   } else {
-    const result = await emailSvc.sendContactCode({
+    await emailSvc.sendContactCode({
       to: newEmail,
       contactName: participant.name,
       code,
       unlockUrl,
       title: brocode.title ?? undefined,
     })
-    resendEmailId = result.resendEmailId
-  }
-  if (resendEmailId) {
-    await prisma.participant.update({ where: { id: participantId }, data: { resendEmailId } })
   }
 
   return true
