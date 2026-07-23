@@ -9,6 +9,18 @@ import { Panel } from '@/app/components/Panel'
 import { GlowButton } from '@/app/components/GlowButton'
 import { TerminalReveal } from '@/app/components/TerminalReveal'
 import { StatusIndicator } from '@/app/components/StatusIndicator'
+import {
+  generateCode,
+  generateSalt,
+  hashCode,
+  saltToBase64,
+} from '@/lib/client/crypto'
+import {
+  contactCodeSubject,
+  renderContactCodeHtml,
+  creatorManageSubject,
+  renderCreatorManageHtml,
+} from '@/lib/email/template'
 
 type EmailDeliveryStatus = 'PENDING' | 'DELIVERED' | 'BOUNCED' | 'FAILED'
 type Contact = { id: string; name: string; email: string; emailDeliveryStatus: EmailDeliveryStatus }
@@ -55,6 +67,12 @@ export default function ManagePage() {
   const [copied, setCopied] = useState(false)
   const [resentIds, setResentIds] = useState<Set<string>>(new Set())
   const [editEmails, setEditEmails] = useState<Record<string, string>>({})
+  const [keyFragment, setKeyFragment] = useState<string | null>(null)
+
+  useEffect(() => {
+    const hash = window.location.hash
+    if (hash.startsWith('#key=')) setKeyFragment(hash.slice(1))
+  }, [])
 
   const load = useCallback(async () => {
     const res = await fetch(`/api/brocodes/manage/${managementToken}`)
@@ -76,27 +94,73 @@ export default function ManagePage() {
     return () => clearInterval(id)
   }, [allTerminal, deleted, load])
 
-  async function resend(participantId: string) {
-    const res = await fetch(`/api/brocodes/manage/${managementToken}/resend`, {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ participantId }),
-    })
-    if (res.ok) {
-      setResentIds((s) => new Set(s).add(participantId))
-      setTimeout(
-        () => setResentIds((s) => { const n = new Set(s); n.delete(participantId); return n }),
-        1500,
-      )
-      await load()
+  async function resend(participantId: string, email: string, name: string, isCreator = false) {
+    if (!keyFragment) {
+      setNotice('Cannot resend: decryption key not found in URL. Open your original email link.')
+      return
     }
-    setNotice(res.ok ? 'Email re-sent' : 'Resend failed')
+    try {
+      // 1. Generate new code and hash it
+      const code = generateCode()
+      const salt = generateSalt()
+      const codeHash = await hashCode(code, salt)
+      const codeSalt = saltToBase64(salt)
+
+      // 2. Update code hash in DB
+      const codeRes = await fetch(
+        `/api/brocodes/manage/${managementToken}/participants/${participantId}/code`,
+        {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ codeHash, codeSalt }),
+        },
+      )
+      if (!codeRes.ok) { setNotice('Resend failed'); return }
+
+      // 3. Build email
+      const unlockUrl = keyFragment
+        ? `${window.location.origin}/unlock/${data!.unlockToken}#${keyFragment}`
+        : `${window.location.origin}/unlock/${data!.unlockToken}`
+      const manageUrl = `${window.location.origin}/manage/${managementToken}#${keyFragment}`
+      const subject = isCreator
+        ? creatorManageSubject({ to: email, creatorName: name, code, managementUrl: manageUrl, unlockUrl, title: data?.title ?? undefined })
+        : contactCodeSubject({ to: email, contactName: name, code, unlockUrl, title: data?.title ?? undefined })
+      const html = isCreator
+        ? renderCreatorManageHtml({ to: email, creatorName: name, code, managementUrl: manageUrl, unlockUrl, title: data?.title ?? undefined })
+        : renderContactCodeHtml({ to: email, contactName: name, code, unlockUrl, title: data?.title ?? undefined })
+
+      // 4. Dispatch email
+      const dispatchRes = await fetch('/api/dispatch-email', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', authorization: `Bearer ${managementToken}` },
+        body: JSON.stringify({ to: email, subject, html }),
+      })
+      if (!dispatchRes.ok) { setNotice('Resend failed'); return }
+
+      const { messageId } = await dispatchRes.json()
+
+      // 5. Register message ID
+      await fetch(`/api/brocodes/manage/${managementToken}/participants/${participantId}/message-id`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ messageId }),
+      })
+
+      setResentIds((s) => new Set(s).add(participantId))
+      setTimeout(() => setResentIds((s) => { const n = new Set(s); n.delete(participantId); return n }), 1500)
+      await load()
+      setNotice('Email re-sent')
+    } catch {
+      setNotice('Resend failed')
+    }
   }
 
-  async function saveEmail(participantId: string) {
+  async function saveEmail(participantId: string, name: string, isCreator = false) {
     const email = editEmails[participantId]?.trim()
     if (!email) return
-    const res = await fetch(
+
+    // 1. Update email in DB
+    const emailRes = await fetch(
       `/api/brocodes/manage/${managementToken}/participants/${participantId}`,
       {
         method: 'PATCH',
@@ -104,10 +168,12 @@ export default function ManagePage() {
         body: JSON.stringify({ email }),
       },
     )
-    if (res.ok) {
-      setEditEmails((prev) => { const n = { ...prev }; delete n[participantId]; return n })
-      await load()
-    }
+    if (!emailRes.ok) { setNotice('Update failed'); return }
+
+    setEditEmails((prev) => { const n = { ...prev }; delete n[participantId]; return n })
+
+    // 2. Resend with new email
+    await resend(participantId, email, name, isCreator)
   }
 
   async function remove() {
@@ -162,7 +228,9 @@ export default function ManagePage() {
     )
   }
 
-  const unlockUrl = `${window.location.origin}/unlock/${data.unlockToken}`
+  const unlockUrl = keyFragment
+    ? `${window.location.origin}/unlock/${data.unlockToken}#${keyFragment}`
+    : `${window.location.origin}/unlock/${data.unlockToken}`
 
   return (
     <div className="flex flex-col h-screen overflow-hidden">
@@ -250,7 +318,7 @@ export default function ManagePage() {
                     }}
                   />
                   <GlowButton
-                    onClick={() => saveEmail(data.creator.id)}
+                    onClick={() => saveEmail(data.creator.id, 'creator', true)}
                     data-testid={`save-email-${data.creator.id}`}
                   >
                     [UPDATE & RESEND]
@@ -303,11 +371,11 @@ export default function ManagePage() {
                   </div>
                   <div>
                     {c.emailDeliveryStatus === 'BOUNCED' || c.emailDeliveryStatus === 'FAILED' ? (
-                      <GlowButton onClick={() => saveEmail(c.id)}>
+                      <GlowButton onClick={() => saveEmail(c.id, c.name)}>
                         [UPDATE & RESEND]
                       </GlowButton>
                     ) : (
-                      <GlowButton onClick={() => resend(c.id)}>
+                      <GlowButton onClick={() => resend(c.id, c.email, c.name)}>
                         {resentIds.has(c.id) ? '✓ SENT' : '[RESEND AUTHORIZATION]'}
                       </GlowButton>
                     )}
@@ -363,13 +431,13 @@ export default function ManagePage() {
                     <td className="py-2 text-right">
                       {c.emailDeliveryStatus === 'BOUNCED' || c.emailDeliveryStatus === 'FAILED' ? (
                         <GlowButton
-                          onClick={() => saveEmail(c.id)}
+                          onClick={() => saveEmail(c.id, c.name)}
                           data-testid={`save-email-${c.id}`}
                         >
                           [UPDATE & RESEND]
                         </GlowButton>
                       ) : (
-                        <GlowButton onClick={() => resend(c.id)} data-testid={`resend-${c.id}`}>
+                        <GlowButton onClick={() => resend(c.id, c.email, c.name)} data-testid={`resend-${c.id}`}>
                           {resentIds.has(c.id) ? '✓ SENT' : '[RESEND AUTHORIZATION]'}
                         </GlowButton>
                       )}

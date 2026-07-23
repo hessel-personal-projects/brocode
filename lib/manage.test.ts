@@ -2,7 +2,6 @@ import { describe, it, expect, beforeEach } from 'vitest'
 import { getManageData, deleteBrocode, updateEmail, updateCodeHash } from './manage'
 import { prisma } from '@/lib/prisma'
 import { resetDb } from '@/tests/helpers/db'
-import { clearCapturedEmails } from '@/lib/email/capture'
 import { uploadAsset } from './storage'
 import { generateToken } from './crypto'
 import { makeCodeHash } from '@/tests/helpers/seed'
@@ -38,7 +37,6 @@ async function seed() {
 describe('getManageData', () => {
   beforeEach(async () => {
     await resetDb()
-    clearCapturedEmails()
   })
 
   it('returns the decrypted creator code, contacts, unlock token, and unlocked status', async () => {
