@@ -1,40 +1,51 @@
-import crypto from 'node:crypto'
 import { prisma } from './prisma'
 import { generateToken } from './crypto'
-import { assetInfoFor, objectKeyFor, MAX_FILE_BYTES, createSchema } from './validation'
+import { assetInfoFor, objectKeyFor, MAX_FILE_BYTES } from './validation'
 import { uploadAsset } from './storage'
-import { getEmailService } from './email'
-
-function generateCode(): string {
-  return crypto.randomInt(0, 1_000_000).toString().padStart(6, '0')
-}
-
-function hashCode(code: string): { codeHash: string; codeSalt: string } {
-  const salt = crypto.randomBytes(16)
-  const hash = crypto.pbkdf2Sync(code, salt, 100_000, 32, 'sha256')
-  return { codeHash: hash.toString('base64'), codeSalt: salt.toString('base64') }
-}
+import { z } from 'zod'
 
 export class ValidationError extends Error {
   status = 400
 }
 
+const participantSchema = z.object({
+  name: z.string().trim().min(1, 'name required'),
+  email: z.email('invalid email'),
+  codeHash: z.string().min(1, 'codeHash required'),
+  codeSalt: z.string().min(1, 'codeSalt required'),
+})
+
+export const createInputSchema = z.object({
+  creatorName: z.string().trim().min(1, 'creator name required'),
+  creatorEmail: z.email('invalid creator email'),
+  creatorCodeHash: z.string().min(1, 'creatorCodeHash required'),
+  creatorCodeSalt: z.string().min(1, 'creatorCodeSalt required'),
+  title: z.string().trim().max(200).optional(),
+  contacts: z.array(participantSchema).min(1, 'at least 1 contact').max(10, 'at most 10 contacts'),
+})
+
 export interface CreateInput {
   creatorName: string
   creatorEmail: string
+  creatorCodeHash: string
+  creatorCodeSalt: string
   title?: string
-  contacts: { name: string; email: string }[]
+  contacts: { name: string; email: string; codeHash: string; codeSalt: string }[]
   file: { buffer: Buffer; contentType: string; size: number }
 }
 
 export interface CreateResult {
   managementToken: string
+  unlockToken: string
+  participants: { id: string; email: string; role: string }[]
 }
 
 export async function createBrocode(input: CreateInput): Promise<CreateResult> {
-  const parsed = createSchema.safeParse({
+  const parsed = createInputSchema.safeParse({
     creatorName: input.creatorName,
     creatorEmail: input.creatorEmail,
+    creatorCodeHash: input.creatorCodeHash,
+    creatorCodeSalt: input.creatorCodeSalt,
     title: input.title,
     contacts: input.contacts,
   })
@@ -50,9 +61,6 @@ export async function createBrocode(input: CreateInput): Promise<CreateResult> {
 
   await uploadAsset(objectKey, input.file.buffer, input.file.contentType)
 
-  const creatorCode = generateCode()
-  const contacts = parsed.data.contacts.map((c) => ({ ...c, code: generateCode() }))
-
   const brocode = await prisma.brocode.create({
     data: {
       managementToken,
@@ -67,13 +75,15 @@ export async function createBrocode(input: CreateInput): Promise<CreateResult> {
             role: 'creator',
             name: parsed.data.creatorName,
             email: parsed.data.creatorEmail,
-            ...hashCode(creatorCode),
+            codeHash: parsed.data.creatorCodeHash,
+            codeSalt: parsed.data.creatorCodeSalt,
           },
-          ...contacts.map((c) => ({
+          ...parsed.data.contacts.map((c) => ({
             role: 'contact' as const,
             name: c.name,
             email: c.email,
-            ...hashCode(c.code),
+            codeHash: c.codeHash,
+            codeSalt: c.codeSalt,
           })),
         ],
       },
@@ -81,54 +91,9 @@ export async function createBrocode(input: CreateInput): Promise<CreateResult> {
     include: { participants: true },
   })
 
-  const emailSvc = getEmailService()
-  const unlockUrl = `${process.env.APP_BASE_URL}/unlock/${unlockToken}`
-  const manageUrl = `${process.env.APP_BASE_URL}/manage/${managementToken}`
-
-  const creatorParticipant = brocode.participants.find((p) => p.role === 'creator')!
-  const contactParticipants = brocode.participants.filter((p) => p.role === 'contact')
-
-  try {
-    const { resendEmailId } = await emailSvc.sendCreatorEmail({
-      to: parsed.data.creatorEmail,
-      creatorName: parsed.data.creatorName,
-      code: creatorCode,
-      managementUrl: manageUrl,
-      unlockUrl,
-      title: parsed.data.title,
-    })
-    if (resendEmailId) {
-      await prisma.participant.update({
-        where: { id: creatorParticipant.id },
-        data: { emailMessageId: resendEmailId },
-      })
-    }
-  } catch (err) {
-    console.error(`failed to email creator ${parsed.data.creatorEmail}:`, err)
+  return {
+    managementToken,
+    unlockToken,
+    participants: brocode.participants.map((p) => ({ id: p.id, email: p.email, role: p.role })),
   }
-
-  await Promise.all(
-    contacts.map(async (c) => {
-      const participant = contactParticipants.find((p) => p.email === c.email)!
-      try {
-        const { resendEmailId } = await emailSvc.sendContactCode({
-          to: c.email,
-          contactName: c.name,
-          code: c.code,
-          unlockUrl,
-          title: parsed.data.title,
-        })
-        if (resendEmailId) {
-          await prisma.participant.update({
-            where: { id: participant.id },
-            data: { emailMessageId: resendEmailId },
-          })
-        }
-      } catch (err) {
-        console.error(`failed to email ${c.email}:`, err)
-      }
-    }),
-  )
-
-  return { managementToken }
 }

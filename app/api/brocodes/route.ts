@@ -15,7 +15,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'file required' }, { status: 400 })
     }
 
-    let contacts: { name: string; email: string }[]
+    let contacts: { name: string; email: string; codeHash: string; codeSalt: string }[]
     try {
       contacts = JSON.parse(String(form.get('contacts') ?? '[]'))
     } catch {
@@ -28,6 +28,8 @@ export async function POST(req: NextRequest) {
     const result = await createBrocode({
       creatorName: String(form.get('creatorName') ?? ''),
       creatorEmail: String(form.get('creatorEmail') ?? ''),
+      creatorCodeHash: String(form.get('creatorCodeHash') ?? ''),
+      creatorCodeSalt: String(form.get('creatorCodeSalt') ?? ''),
       title: titleRaw ? String(titleRaw) : undefined,
       contacts,
       file: { buffer, contentType: file.type, size: file.size },

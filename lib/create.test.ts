@@ -1,8 +1,8 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { describe, it, expect, beforeEach } from 'vitest'
 import { createBrocode, ValidationError } from './create'
 import { prisma } from '@/lib/prisma'
 import { resetDb } from '@/tests/helpers/db'
-import { clearCapturedEmails, getCapturedEmails } from '@/lib/email/capture'
+import { makeCodeHash, makeCreatorHash } from '@/tests/helpers/seed'
 import { MAX_FILE_BYTES } from './validation'
 
 const pngBuffer = Buffer.from(
@@ -10,14 +10,15 @@ const pngBuffer = Buffer.from(
   'base64',
 )
 
-function input(overrides = {}) {
+function input(overrides: Record<string, unknown> = {}) {
   return {
     creatorName: 'Alice',
     creatorEmail: 'alice@example.com',
+    ...makeCreatorHash('111111'),
     title: 'Secret',
     contacts: [
-      { name: 'Bob', email: 'bob@example.com' },
-      { name: 'Cara', email: 'cara@example.com' },
+      { name: 'Bob', email: 'bob@example.com', ...makeCodeHash('222222') },
+      { name: 'Cara', email: 'cara@example.com', ...makeCodeHash('333333') },
     ],
     file: { buffer: pngBuffer, contentType: 'image/png', size: pngBuffer.length },
     ...overrides,
@@ -25,30 +26,20 @@ function input(overrides = {}) {
 }
 
 describe('createBrocode', () => {
-  beforeEach(async () => {
-    vi.stubEnv('EMAIL_TRANSPORT', 'capture')
-    await resetDb()
-    clearCapturedEmails()
-  })
+  beforeEach(resetDb)
 
-  it('creates a brocode with creator + contacts and emails all participants', async () => {
+  it('creates a brocode with creator + contacts and returns participant ids', async () => {
     const result = await createBrocode(input())
     expect(result.managementToken).toBeTruthy()
+    expect(result.unlockToken).toBeTruthy()
+    expect(result.participants).toHaveLength(3)
 
     const brocode = await prisma.brocode.findFirst({
       where: { managementToken: result.managementToken },
       include: { participants: true },
     })
     expect(brocode?.participants).toHaveLength(3)
-
-    const creator = brocode!.participants.find((p) => p.role === 'creator')!
-    expect(creator.email).toBe('alice@example.com')
-
-    const captured = getCapturedEmails()
-    expect(captured.map((e) => e.to).sort()).toEqual(['alice@example.com', 'bob@example.com', 'cara@example.com'])
-    expect(
-      captured.filter((e) => e.to !== 'alice@example.com').every((e) => e.unlockUrl.includes(brocode!.unlockToken)),
-    ).toBe(true)
+    expect(brocode?.participants.find((p) => p.role === 'creator')?.email).toBe('alice@example.com')
   })
 
   it('rejects an unsupported file type', async () => {
@@ -68,7 +59,11 @@ describe('createBrocode', () => {
   })
 
   it('rejects 11 contacts', async () => {
-    const contacts = Array.from({ length: 11 }, (_, i) => ({ name: `C${i}`, email: `c${i}@x.com` }))
+    const contacts = Array.from({ length: 11 }, (_, i) => ({
+      name: `C${i}`,
+      email: `c${i}@x.com`,
+      ...makeCodeHash(`00000${i}`),
+    }))
     await expect(createBrocode(input({ contacts }))).rejects.toBeInstanceOf(ValidationError)
   })
 })

@@ -9,3 +9,8 @@ export function makeCodeHash(code: string): { codeHash: string; codeSalt: string
 export function seedParticipant(code: string, overrides: Record<string, unknown> = {}) {
   return { ...makeCodeHash(code), ...overrides }
 }
+
+export function makeCreatorHash(code: string) {
+  const { codeHash, codeSalt } = makeCodeHash(code)
+  return { creatorCodeHash: codeHash, creatorCodeSalt: codeSalt }
+}

@@ -4,13 +4,15 @@ import path from 'node:path'
 import { createBrocode, ValidationError } from '@/lib/create'
 import { prisma } from '@/lib/prisma'
 import { resetDb } from './helpers/db'
+import { makeCreatorHash, makeCodeHash } from './helpers/seed'
 
 const TINY_PNG = fs.readFileSync(path.join(__dirname, '../e2e/fixtures/tiny.png'))
 
 const BASE_INPUT = {
   creatorName: 'Alice',
   creatorEmail: 'alice@example.com',
-  contacts: [{ name: 'Bob', email: 'bob@example.com' }],
+  ...makeCreatorHash('111111'),
+  contacts: [{ name: 'Bob', email: 'bob@example.com', ...makeCodeHash('222222') }],
   file: { buffer: TINY_PNG, contentType: 'image/png', size: TINY_PNG.length },
 }
 
