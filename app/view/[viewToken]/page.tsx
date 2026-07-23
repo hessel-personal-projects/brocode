@@ -55,6 +55,12 @@ export default function ViewPage() {
       .catch(() => setPhase('gone'))
   }, [viewToken])
 
+  useEffect(() => {
+    return () => {
+      if (blobUrl) URL.revokeObjectURL(blobUrl)
+    }
+  }, [blobUrl])
+
   if (phase === 'no-key') {
     return (
       <div className="flex flex-col h-screen overflow-hidden">
