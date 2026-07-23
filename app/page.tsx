@@ -9,6 +9,20 @@ import { StatusIndicator } from '@/app/components/StatusIndicator'
 import { GlowButton } from '@/app/components/GlowButton'
 import { HoldButton } from '@/app/components/HoldButton'
 import { TerminalReveal } from '@/app/components/TerminalReveal'
+import {
+  encryptFile,
+  generateCode,
+  generateSalt,
+  hashCode,
+  saltToBase64,
+  keyToFragment,
+} from '@/lib/client/crypto'
+import {
+  contactCodeSubject,
+  renderContactCodeHtml,
+  creatorManageSubject,
+  renderCreatorManageHtml,
+} from '@/lib/email/template'
 
 type Contact = { name: string; email: string }
 
@@ -40,16 +54,91 @@ export default function CreatePage() {
     if (!file) return setError('Choose a file')
     setBusy(true)
     try {
+      // 1. Encrypt file client-side
+      const { ciphertext, key } = await encryptFile(file)
+      const encryptedFile = new File([ciphertext], file.name, { type: file.type })
+
+      // 2. Generate and hash codes for creator + all contacts
+      const allParticipants = [
+        { name: creatorName, email: creatorEmail, role: 'creator' as const },
+        ...contacts.map((c) => ({ ...c, role: 'contact' as const })),
+      ]
+      const participantsWithCodes = await Promise.all(
+        allParticipants.map(async (p) => {
+          const code = generateCode()
+          const salt = generateSalt()
+          const codeHash = await hashCode(code, salt)
+          return { ...p, code, codeHash, codeSalt: saltToBase64(salt) }
+        }),
+      )
+
+      // 3. POST /api/brocodes with encrypted file + hashes
+      const creator = participantsWithCodes.find((p) => p.role === 'creator')!
+      const contactParticipants = participantsWithCodes.filter((p) => p.role === 'contact')
+
       const form = new FormData()
-      form.set('file', file)
+      form.set('file', encryptedFile)
       form.set('creatorName', creatorName)
       form.set('creatorEmail', creatorEmail)
+      form.set('creatorCodeHash', creator.codeHash)
+      form.set('creatorCodeSalt', creator.codeSalt)
       if (title) form.set('title', title)
-      form.set('contacts', JSON.stringify(contacts))
+      form.set(
+        'contacts',
+        JSON.stringify(
+          contactParticipants.map(({ name, email, codeHash, codeSalt }) => ({
+            name,
+            email,
+            codeHash,
+            codeSalt,
+          })),
+        ),
+      )
+
       const res = await fetch('/api/brocodes', { method: 'POST', body: form })
       const body = await res.json()
       if (!res.ok) throw new Error(body.error ?? 'Failed')
-      router.push(`/manage/${body.managementToken}`)
+
+      const { managementToken, unlockToken, participants: createdParticipants } = body
+
+      // 4. Construct URLs with key fragment
+      const keyFragment = `key=${keyToFragment(key)}`
+      const unlockUrl = `${window.location.origin}/unlock/${unlockToken}#${keyFragment}`
+      const manageUrl = `${window.location.origin}/manage/${managementToken}#${keyFragment}`
+
+      // 5. Dispatch emails for each participant
+      for (const pw of participantsWithCodes) {
+        const created = createdParticipants.find((p: { email: string }) => p.email === pw.email)
+        if (!created) continue
+
+        const isCreator = pw.role === 'creator'
+        const subject = isCreator
+          ? creatorManageSubject({ creatorName: pw.name, title: title || undefined, code: pw.code, managementUrl: manageUrl, unlockUrl, to: pw.email })
+          : contactCodeSubject({ contactName: pw.name, title: title || undefined, code: pw.code, unlockUrl, to: pw.email })
+        const html = isCreator
+          ? renderCreatorManageHtml({ creatorName: pw.name, code: pw.code, managementUrl: manageUrl, unlockUrl, to: pw.email, title: title || undefined })
+          : renderContactCodeHtml({ contactName: pw.name, code: pw.code, unlockUrl, to: pw.email, title: title || undefined })
+
+        const dispatchRes = await fetch('/api/dispatch-email', {
+          method: 'POST',
+          headers: {
+            'content-type': 'application/json',
+            authorization: `Bearer ${managementToken}`,
+          },
+          body: JSON.stringify({ to: pw.email, subject, html }),
+        })
+        if (dispatchRes.ok) {
+          const { messageId } = await dispatchRes.json()
+          await fetch(`/api/brocodes/manage/${managementToken}/participants/${created.id}/message-id`, {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({ messageId }),
+          })
+        }
+      }
+
+      // 6. Navigate to manage page with key in fragment
+      router.push(`/manage/${managementToken}#${keyFragment}`)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed')
       setBusy(false)
