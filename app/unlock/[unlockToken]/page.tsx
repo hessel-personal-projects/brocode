@@ -46,7 +46,10 @@ export default function UnlockRitual() {
   useEffect(() => { load() }, [load])
 
   useEffect(() => {
-    if (state?.status === 'unlocked') router.push(`/view/${state.viewToken}`)
+    if (state?.status === 'unlocked') {
+      const fragment = window.location.hash
+      router.push(`/view/${state.viewToken}${fragment}`)
+    }
   }, [state, router])
 
   async function submit(submittedCode: string) {
