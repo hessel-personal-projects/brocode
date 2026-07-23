@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, beforeAll } from 'vitest'
 import { consumeViewToken } from './view'
 import { prisma } from '@/lib/prisma'
 import { resetDb } from '@/tests/helpers/db'
+import { makeCodeHash } from '@/tests/helpers/seed'
 import { getSupabaseAdmin } from './supabase'
 import { generateToken } from './crypto'
 import { VIEW_TOKEN_TTL_MS } from './constants'
@@ -19,7 +20,7 @@ async function seedCompletedSession(opts: { used?: boolean; expired?: boolean } 
       assetObjectKey: FIXTURE_KEY,
       assetContentType: 'image/png',
       assetKind: 'image',
-      participants: { create: [{ role: 'creator', name: 'Alice', email: 'alice@example.com', codeEncrypted: 'x' }] },
+      participants: { create: [{ role: 'creator', name: 'Alice', email: 'alice@example.com', ...makeCodeHash('111111') }] },
     },
   })
   const viewToken = generateToken()

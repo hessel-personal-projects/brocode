@@ -1,8 +1,19 @@
+import crypto from 'node:crypto'
 import { prisma } from './prisma'
-import { generateCode, encryptCode, generateToken } from './crypto'
+import { generateToken } from './crypto'
 import { assetInfoFor, objectKeyFor, MAX_FILE_BYTES, createSchema } from './validation'
 import { uploadAsset } from './storage'
 import { getEmailService } from './email'
+
+function generateCode(): string {
+  return crypto.randomInt(0, 1_000_000).toString().padStart(6, '0')
+}
+
+function hashCode(code: string): { codeHash: string; codeSalt: string } {
+  const salt = crypto.randomBytes(16)
+  const hash = crypto.pbkdf2Sync(code, salt, 100_000, 32, 'sha256')
+  return { codeHash: hash.toString('base64'), codeSalt: salt.toString('base64') }
+}
 
 export class ValidationError extends Error {
   status = 400
@@ -56,13 +67,13 @@ export async function createBrocode(input: CreateInput): Promise<CreateResult> {
             role: 'creator',
             name: parsed.data.creatorName,
             email: parsed.data.creatorEmail,
-            codeEncrypted: encryptCode(creatorCode),
+            ...hashCode(creatorCode),
           },
           ...contacts.map((c) => ({
             role: 'contact' as const,
             name: c.name,
             email: c.email,
-            codeEncrypted: encryptCode(c.code),
+            ...hashCode(c.code),
           })),
         ],
       },
@@ -89,7 +100,7 @@ export async function createBrocode(input: CreateInput): Promise<CreateResult> {
     if (resendEmailId) {
       await prisma.participant.update({
         where: { id: creatorParticipant.id },
-        data: { resendEmailId },
+        data: { emailMessageId: resendEmailId },
       })
     }
   } catch (err) {
@@ -110,7 +121,7 @@ export async function createBrocode(input: CreateInput): Promise<CreateResult> {
         if (resendEmailId) {
           await prisma.participant.update({
             where: { id: participant.id },
-            data: { resendEmailId },
+            data: { emailMessageId: resendEmailId },
           })
         }
       } catch (err) {

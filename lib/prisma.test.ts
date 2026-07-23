@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { prisma } from '@/lib/prisma'
 import { resetDb } from '@/tests/helpers/db'
+import { makeCodeHash } from '@/tests/helpers/seed'
 
 describe('prisma round-trip', () => {
   beforeEach(resetDb)
@@ -15,8 +16,8 @@ describe('prisma round-trip', () => {
         assetKind: 'image',
         participants: {
           create: [
-            { role: 'creator', name: 'Alice', email: 'alice@example.com', codeEncrypted: 'x' },
-            { role: 'contact', name: 'Bob', email: 'bob@example.com', codeEncrypted: 'y' },
+            { role: 'creator', name: 'Alice', email: 'alice@example.com', ...makeCodeHash('111111') },
+            { role: 'contact', name: 'Bob', email: 'bob@example.com', ...makeCodeHash('222222') },
           ],
         },
       },

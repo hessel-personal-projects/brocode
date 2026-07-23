@@ -51,7 +51,7 @@ describe('updateDeliveryStatus', () => {
     })
     await prisma.participant.update({
       where: { id: creator!.id },
-      data: { resendEmailId: 'fake-email-id' },
+      data: { emailMessageId: 'fake-email-id' },
     })
 
     await updateDeliveryStatus('fake-email-id', 'DELIVERED')

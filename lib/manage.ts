@@ -1,7 +1,6 @@
 import { prisma } from './prisma'
-import { decryptCode } from './crypto'
 import { removeAsset } from './storage'
-import { getEmailService, type EmailDeliveryStatus } from './email'
+import { type EmailDeliveryStatus } from './email'
 
 export interface ManageContact {
   id: string
@@ -58,29 +57,17 @@ export async function getManageData(managementToken: string): Promise<ManageData
 }
 
 export async function resendContactEmail(managementToken: string, participantId: string): Promise<boolean> {
-  const brocode = await prisma.brocode.findUnique({
-    where: { managementToken },
-    include: { participants: true },
-  })
+  // TODO(Task 9): code is now hashed — email dispatch is client-driven
+  const brocode = await prisma.brocode.findUnique({ where: { managementToken } })
   if (!brocode) return false
-
-  const participant = brocode.participants.find((p) => p.id === participantId && p.role === 'contact')
+  const participant = await prisma.participant.findFirst({
+    where: { id: participantId, brocodeId: brocode.id, role: 'contact' },
+  })
   if (!participant) return false
-
   await prisma.participant.update({
     where: { id: participantId },
     data: { emailDeliveryStatus: 'PENDING' },
   })
-
-  const unlockUrl = `${process.env.APP_BASE_URL}/unlock/${brocode.unlockToken}`
-  await getEmailService().sendContactCode({
-    to: participant.email,
-    contactName: participant.name,
-    code: decryptCode(participant.codeEncrypted),
-    unlockUrl,
-    title: brocode.title ?? undefined,
-  })
-
   return true
 }
 
@@ -89,43 +76,19 @@ export async function updateAndResendEmail(
   participantId: string,
   newEmail: string,
 ): Promise<boolean> {
-  const brocode = await prisma.brocode.findUnique({
-    where: { managementToken },
-    include: { participants: true },
-  })
+  // TODO(Task 9): code is now hashed — email dispatch is client-driven
+  const brocode = await prisma.brocode.findUnique({ where: { managementToken } })
   if (!brocode) return false
 
-  const participant = brocode.participants.find((p) => p.id === participantId)
+  const participant = await prisma.participant.findFirst({
+    where: { id: participantId, brocodeId: brocode.id },
+  })
   if (!participant) return false
 
   await prisma.participant.update({
     where: { id: participantId },
     data: { email: newEmail, emailDeliveryStatus: 'PENDING' },
   })
-
-  const emailSvc = getEmailService()
-  const unlockUrl = `${process.env.APP_BASE_URL}/unlock/${brocode.unlockToken}`
-  const code = decryptCode(participant.codeEncrypted)
-
-  if (participant.role === 'creator') {
-    const manageUrl = `${process.env.APP_BASE_URL}/manage/${managementToken}`
-    await emailSvc.sendCreatorEmail({
-      to: newEmail,
-      creatorName: participant.name,
-      code,
-      managementUrl: manageUrl,
-      unlockUrl,
-      title: brocode.title ?? undefined,
-    })
-  } else {
-    await emailSvc.sendContactCode({
-      to: newEmail,
-      contactName: participant.name,
-      code,
-      unlockUrl,
-      title: brocode.title ?? undefined,
-    })
-  }
 
   return true
 }

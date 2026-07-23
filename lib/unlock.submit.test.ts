@@ -2,7 +2,8 @@ import { describe, it, expect, beforeEach } from 'vitest'
 import { loadUnlockState, submitCode } from './unlock'
 import { prisma } from '@/lib/prisma'
 import { resetDb } from '@/tests/helpers/db'
-import { encryptCode, generateToken } from './crypto'
+import { makeCodeHash } from '@/tests/helpers/seed'
+import { generateToken } from './crypto'
 import { LOCKOUT_MS } from './constants'
 
 // codes: Alice 111111, Bob 222222, Cara 333333
@@ -16,9 +17,9 @@ async function seed() {
       assetKind: 'image',
       participants: {
         create: [
-          { role: 'creator', name: 'Alice', email: 'alice@example.com', codeEncrypted: encryptCode('111111') },
-          { role: 'contact', name: 'Bob', email: 'b@x.com', codeEncrypted: encryptCode('222222') },
-          { role: 'contact', name: 'Cara', email: 'c@x.com', codeEncrypted: encryptCode('333333') },
+          { role: 'creator', name: 'Alice', email: 'alice@example.com', ...makeCodeHash('111111') },
+          { role: 'contact', name: 'Bob', email: 'b@x.com', ...makeCodeHash('222222') },
+          { role: 'contact', name: 'Cara', email: 'c@x.com', ...makeCodeHash('333333') },
         ],
       },
     },

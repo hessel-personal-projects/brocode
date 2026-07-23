@@ -65,7 +65,7 @@ describe('POST /api/webhooks/resend', () => {
     })
     await prisma.participant.update({
       where: { id: participant!.id },
-      data: { resendEmailId: 'resend-abc-123' },
+      data: { emailMessageId: 'resend-abc-123' },
     })
 
     const res = await POST(
@@ -85,7 +85,7 @@ describe('POST /api/webhooks/resend', () => {
     })
     await prisma.participant.update({
       where: { id: participant!.id },
-      data: { resendEmailId: 'resend-bounce-id' },
+      data: { emailMessageId: 'resend-bounce-id' },
     })
 
     const res = await POST(
@@ -103,7 +103,7 @@ describe('POST /api/webhooks/resend', () => {
     })
     await prisma.participant.update({
       where: { id: participant!.id },
-      data: { resendEmailId: 'resend-open-id' },
+      data: { emailMessageId: 'resend-open-id' },
     })
 
     const res = await POST(

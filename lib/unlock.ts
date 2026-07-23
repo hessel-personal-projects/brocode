@@ -79,7 +79,7 @@ export async function submitCode(unlockToken: string, code: string): Promise<Unl
 
   const matched = matchedIds(session)
   const unmatched = brocode.participants.filter((p) => !matched.includes(p.id))
-  const hit = unmatched.find((p) => verifyCode(code, p.codeEncrypted))
+  const hit = unmatched.find((p) => verifyCode(code, p.codeHash, p.codeSalt))
 
   if (!hit) {
     const lockedUntil = new Date(now.getTime() + LOCKOUT_MS)

@@ -1,10 +1,11 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest'
-import { getManageData, resendContactEmail, deleteBrocode } from './manage'
+import { describe, it, expect, beforeEach } from 'vitest'
+import { getManageData, deleteBrocode } from './manage'
 import { prisma } from '@/lib/prisma'
 import { resetDb } from '@/tests/helpers/db'
-import { clearCapturedEmails, getCapturedEmails } from '@/lib/email/capture'
+import { clearCapturedEmails } from '@/lib/email/capture'
 import { uploadAsset } from './storage'
-import { encryptCode, generateToken } from './crypto'
+import { generateToken } from './crypto'
+import { makeCodeHash } from '@/tests/helpers/seed'
 import { objectKeyFor } from './validation'
 
 const png = Buffer.from(
@@ -25,8 +26,8 @@ async function seed() {
       title: 'Secret',
       participants: {
         create: [
-          { role: 'creator', name: 'Alice', email: 'alice@example.com', codeEncrypted: encryptCode('111111') },
-          { role: 'contact', name: 'Bob', email: 'bob@x.com', codeEncrypted: encryptCode('222222') },
+          { role: 'creator', name: 'Alice', email: 'alice@example.com', ...makeCodeHash('111111') },
+          { role: 'contact', name: 'Bob', email: 'bob@x.com', ...makeCodeHash('222222') },
         ],
       },
     },
@@ -65,30 +66,7 @@ describe('getManageData', () => {
   })
 })
 
-describe('resendContactEmail', () => {
-  beforeEach(async () => {
-    vi.stubEnv('EMAIL_TRANSPORT', 'capture')
-    await resetDb()
-    clearCapturedEmails()
-  })
-
-  it('re-sends a contact code + unlock link', async () => {
-    const b = await seed()
-    const contact = b.participants.find((p) => p.role === 'contact')!
-    const ok = await resendContactEmail(b.managementToken, contact.id)
-    expect(ok).toBe(true)
-    const captured = getCapturedEmails()
-    expect(captured).toHaveLength(1)
-    expect(captured[0].to).toBe('bob@x.com')
-    expect(captured[0].code).toBe('222222')
-    expect(captured[0].unlockUrl).toContain(b.unlockToken)
-  })
-
-  it('returns false for an unknown participant', async () => {
-    const b = await seed()
-    expect(await resendContactEmail(b.managementToken, 'nope')).toBe(false)
-  })
-})
+// resendContactEmail removed — email dispatch is now client-driven (see Task 9)
 
 describe('deleteBrocode', () => {
   beforeEach(resetDb)

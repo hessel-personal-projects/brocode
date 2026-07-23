@@ -2,7 +2,8 @@ import { describe, it, expect, beforeEach } from 'vitest'
 import { loadUnlockState } from './unlock'
 import { prisma } from '@/lib/prisma'
 import { resetDb } from '@/tests/helpers/db'
-import { encryptCode, generateToken } from './crypto'
+import { makeCodeHash } from '@/tests/helpers/seed'
+import { generateToken } from './crypto'
 
 async function seed(opts: { lockedUntil?: Date } = {}) {
   return prisma.brocode.create({
@@ -15,8 +16,8 @@ async function seed(opts: { lockedUntil?: Date } = {}) {
       lockedUntil: opts.lockedUntil ?? null,
       participants: {
         create: [
-          { role: 'creator', name: 'Alice', email: 'alice@example.com', codeEncrypted: encryptCode('111111') },
-          { role: 'contact', name: 'Bob', email: 'bob@x.com', codeEncrypted: encryptCode('222222') },
+          { role: 'creator', name: 'Alice', email: 'alice@example.com', ...makeCodeHash('111111') },
+          { role: 'contact', name: 'Bob', email: 'bob@x.com', ...makeCodeHash('222222') },
         ],
       },
     },
