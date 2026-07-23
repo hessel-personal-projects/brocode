@@ -140,11 +140,11 @@ export async function updateAndResendEmail(
 }
 
 export async function updateDeliveryStatus(
-  resendEmailId: string,
+  emailMessageId: string,
   status: EmailDeliveryStatus,
 ): Promise<void> {
   await prisma.participant.updateMany({
-    where: { resendEmailId },
+    where: { emailMessageId },
     data: { emailDeliveryStatus: status },
   })
 }

@@ -44,10 +44,8 @@ model Participant {
   role                Role
   name                String
   email               String
-  codeEncrypted       String
-  codeHash            String?
-  codeSalt            String?
-  resendEmailId       String?
+  codeHash            String
+  codeSalt            String
   emailMessageId      String?
   emailDeliveryStatus EmailDeliveryStatus @default(PENDING)
   createdAt           DateTime            @default(now())
