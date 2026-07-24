@@ -52,6 +52,7 @@ export default function CreatePage() {
   async function submit() {
     setError(null)
     if (!file) return setError('Choose a file')
+    if (file.size > 5 * 1024 * 1024) return setError('Payload exceeds 5 MB limit')
     setBusy(true)
     try {
       // 1. Encrypt file client-side
@@ -72,7 +73,7 @@ export default function CreatePage() {
         body: ciphertext,
         headers: { 'Content-Type': file.type, 'x-upsert': 'false' },
       })
-      if (!storageRes.ok) throw new Error('storage upload failed')
+      if (!storageRes.ok) throw new Error(storageRes.status === 413 ? 'Payload exceeds 5 MB limit' : 'Upload failed')
 
       // 4. Generate and hash codes for creator + all contacts
       const allParticipants = [
