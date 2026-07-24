@@ -26,6 +26,14 @@ export async function createSignedUrl(
   return data.signedUrl
 }
 
+export async function createSignedUploadUrl(objectKey: string): Promise<string> {
+  const { data, error } = await getSupabaseAdmin()
+    .storage.from(bucket())
+    .createSignedUploadUrl(objectKey)
+  if (error || !data) throw new Error(`signed upload url failed: ${error?.message ?? 'no data'}`)
+  return data.signedUrl
+}
+
 export async function removeAsset(objectKey: string): Promise<void> {
   const { error } = await getSupabaseAdmin()
     .storage.from(bucket())

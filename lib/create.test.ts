@@ -20,7 +20,9 @@ function input(overrides: Record<string, unknown> = {}) {
       { name: 'Bob', email: 'bob@example.com', ...makeCodeHash('222222') },
       { name: 'Cara', email: 'cara@example.com', ...makeCodeHash('333333') },
     ],
-    file: { buffer: pngBuffer, contentType: 'image/png', size: pngBuffer.length },
+    objectKey: 'assets/test.png',
+    contentType: 'image/png' as const,
+    assetKind: 'image' as const,
     ...overrides,
   }
 }

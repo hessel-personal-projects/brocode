@@ -56,9 +56,25 @@ export default function CreatePage() {
     try {
       // 1. Encrypt file client-side
       const { ciphertext, key } = await encryptFile(file)
-      const encryptedFile = new File([ciphertext], file.name, { type: file.type })
 
-      // 2. Generate and hash codes for creator + all contacts
+      // 2. Get signed upload URL from server
+      const uploadUrlRes = await fetch('/api/brocodes/upload-url', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ contentType: file.type, size: file.size }),
+      })
+      if (!uploadUrlRes.ok) throw new Error((await uploadUrlRes.json()).error ?? 'upload-url failed')
+      const { objectKey, uploadUrl, assetKind } = await uploadUrlRes.json()
+
+      // 3. Upload encrypted file directly to Supabase Storage (bypasses Vercel size limit)
+      const storageRes = await fetch(uploadUrl, {
+        method: 'PUT',
+        body: ciphertext,
+        headers: { 'Content-Type': file.type, 'x-upsert': 'false' },
+      })
+      if (!storageRes.ok) throw new Error('storage upload failed')
+
+      // 4. Generate and hash codes for creator + all contacts
       const allParticipants = [
         { name: creatorName, email: creatorEmail, role: 'creator' as const },
         ...contacts.map((c) => ({ ...c, role: 'contact' as const })),
@@ -72,30 +88,27 @@ export default function CreatePage() {
         }),
       )
 
-      // 3. POST /api/brocodes with encrypted file + hashes
+      // 5. POST metadata only to /api/brocodes
       const creator = participantsWithCodes.find((p) => p.role === 'creator')!
       const contactParticipants = participantsWithCodes.filter((p) => p.role === 'contact')
 
-      const form = new FormData()
-      form.set('file', encryptedFile)
-      form.set('creatorName', creatorName)
-      form.set('creatorEmail', creatorEmail)
-      form.set('creatorCodeHash', creator.codeHash)
-      form.set('creatorCodeSalt', creator.codeSalt)
-      if (title) form.set('title', title)
-      form.set(
-        'contacts',
-        JSON.stringify(
-          contactParticipants.map(({ name, email, codeHash, codeSalt }) => ({
-            name,
-            email,
-            codeHash,
-            codeSalt,
+      const res = await fetch('/api/brocodes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          objectKey,
+          contentType: file.type,
+          assetKind,
+          creatorName,
+          creatorEmail,
+          creatorCodeHash: creator.codeHash,
+          creatorCodeSalt: creator.codeSalt,
+          title: title || undefined,
+          contacts: contactParticipants.map(({ name, email, codeHash, codeSalt }) => ({
+            name, email, codeHash, codeSalt,
           })),
-        ),
-      )
-
-      const res = await fetch('/api/brocodes', { method: 'POST', body: form })
+        }),
+      })
       const body = await res.json()
       if (!res.ok) throw new Error(body.error ?? 'Failed')
 

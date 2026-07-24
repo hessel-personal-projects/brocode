@@ -13,7 +13,9 @@ const BASE_INPUT = {
   creatorEmail: 'alice@example.com',
   ...makeCreatorHash('111111'),
   contacts: [{ name: 'Bob', email: 'bob@example.com', ...makeCodeHash('222222') }],
-  file: { buffer: TINY_PNG, contentType: 'image/png', size: TINY_PNG.length },
+  objectKey: 'assets/test.png',
+  contentType: 'image/png' as const,
+  assetKind: 'image' as const,
 }
 
 describe('createBrocode', () => {

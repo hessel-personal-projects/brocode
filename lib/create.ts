@@ -1,7 +1,6 @@
 import { prisma } from './prisma'
 import { generateToken } from './crypto'
-import { assetInfoFor, objectKeyFor, MAX_FILE_BYTES } from './validation'
-import { uploadAsset } from './storage'
+import { type AssetKind } from './validation'
 import { z } from 'zod'
 
 export class ValidationError extends Error {
@@ -31,7 +30,9 @@ export interface CreateInput {
   creatorCodeSalt: string
   title?: string
   contacts: { name: string; email: string; codeHash: string; codeSalt: string }[]
-  file: { buffer: Buffer; contentType: string; size: number }
+  objectKey: string
+  contentType: string
+  assetKind: AssetKind
 }
 
 export interface CreateResult {
@@ -51,23 +52,16 @@ export async function createBrocode(input: CreateInput): Promise<CreateResult> {
   })
   if (!parsed.success) throw new ValidationError(parsed.error.issues[0].message)
 
-  if (input.file.size > MAX_FILE_BYTES) throw new ValidationError('file exceeds 5MB')
-  const assetInfo = assetInfoFor(input.file.contentType)
-  if (!assetInfo) throw new ValidationError('unsupported file type')
-
   const managementToken = generateToken()
   const unlockToken = generateToken()
-  const objectKey = objectKeyFor(assetInfo.ext)
-
-  await uploadAsset(objectKey, input.file.buffer, input.file.contentType)
 
   const brocode = await prisma.brocode.create({
     data: {
       managementToken,
       unlockToken,
-      assetObjectKey: objectKey,
-      assetContentType: input.file.contentType,
-      assetKind: assetInfo.kind,
+      assetObjectKey: input.objectKey,
+      assetContentType: input.contentType,
+      assetKind: input.assetKind,
       title: parsed.data.title ?? null,
       participants: {
         create: [
