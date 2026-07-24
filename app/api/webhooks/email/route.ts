@@ -70,14 +70,14 @@ export async function POST(req: NextRequest) {
 
   if (msg.Type !== 'Notification') return NextResponse.json({ ok: true })
 
-  let event: { notificationType: string; mail: { messageId: string } }
+  let event: { eventType?: string; notificationType?: string; mail: { messageId: string } }
   try {
     event = JSON.parse(msg.Message)
   } catch {
     return NextResponse.json({ ok: true })
   }
 
-  const status = STATUS_MAP[event.notificationType]
+  const status = STATUS_MAP[event.eventType ?? event.notificationType ?? '']
   if (status && event.mail?.messageId) {
     await updateDeliveryStatus(event.mail.messageId, status)
   }
