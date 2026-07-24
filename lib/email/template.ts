@@ -1,4 +1,19 @@
-import type { ContactCodeEmail, CreatorManageEmail } from './types'
+export interface ContactCodeEmail {
+  to: string
+  contactName: string
+  unlockUrl: string
+  title?: string
+  code: string
+}
+
+export interface CreatorManageEmail {
+  to: string
+  creatorName: string
+  managementUrl: string
+  unlockUrl: string
+  title?: string
+  code: string
+}
 
 function escapeHtml(s: string): string {
   return s

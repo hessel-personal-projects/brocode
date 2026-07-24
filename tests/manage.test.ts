@@ -36,7 +36,7 @@ describe('getManageData', () => {
     const { managementToken } = await createBrocode(BASE_INPUT)
     const data = await getManageData(managementToken)
 
-    expect((data as Record<string, unknown>).creatorCode).toBeUndefined()
+    expect((data as unknown as Record<string, unknown>).creatorCode).toBeUndefined()
   })
 })
 

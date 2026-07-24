@@ -33,7 +33,7 @@ describe('createBrocode', () => {
     const result = await createBrocode(BASE_INPUT)
 
     expect(result.managementToken).toBeTruthy()
-    expect((result as Record<string, unknown>).creatorCode).toBeUndefined()
+    expect((result as unknown as Record<string, unknown>).creatorCode).toBeUndefined()
   })
 
   it('rejects an invalid creatorEmail', async () => {

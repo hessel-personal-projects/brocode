@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { creatorManageSubject, renderCreatorManageHtml } from './template'
-import type { CreatorManageEmail } from './types'
+import type { CreatorManageEmail } from './template'
 
 const BASE: CreatorManageEmail = {
   to: 'alice@example.com',

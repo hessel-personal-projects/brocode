@@ -1,4 +1,4 @@
-export function generateAssetKey(): Uint8Array {
+export function generateAssetKey(): Uint8Array<ArrayBuffer> {
   return crypto.getRandomValues(new Uint8Array(32))
 }
 
@@ -9,7 +9,7 @@ export function keyToFragment(key: Uint8Array): string {
     .replace(/=/g, '')
 }
 
-export function fragmentToKey(fragment: string): Uint8Array {
+export function fragmentToKey(fragment: string): Uint8Array<ArrayBuffer> {
   const padded = fragment + '='.repeat((4 - (fragment.length % 4)) % 4)
   const b64 = padded.replace(/-/g, '+').replace(/_/g, '/')
   return Uint8Array.from(atob(b64), (c) => c.charCodeAt(0))
@@ -17,7 +17,7 @@ export function fragmentToKey(fragment: string): Uint8Array {
 
 export async function encryptFile(
   file: File,
-): Promise<{ ciphertext: Uint8Array; key: Uint8Array }> {
+): Promise<{ ciphertext: Uint8Array<ArrayBuffer>; key: Uint8Array<ArrayBuffer> }> {
   const key = generateAssetKey()
   const iv = crypto.getRandomValues(new Uint8Array(12))
   const keyObj = await crypto.subtle.importKey('raw', key, 'AES-GCM', false, ['encrypt'])
@@ -30,7 +30,7 @@ export async function encryptFile(
 
 export async function decryptAsset(
   buffer: ArrayBuffer,
-  key: Uint8Array,
+  key: Uint8Array<ArrayBuffer>,
 ): Promise<ArrayBuffer> {
   const iv = buffer.slice(0, 12)
   const ct = buffer.slice(12)
@@ -43,15 +43,15 @@ export function generateCode(): string {
   return n.toString().padStart(6, '0')
 }
 
-export function generateSalt(): Uint8Array {
+export function generateSalt(): Uint8Array<ArrayBuffer> {
   return crypto.getRandomValues(new Uint8Array(16))
 }
 
-export function saltToBase64(salt: Uint8Array): string {
+export function saltToBase64(salt: Uint8Array<ArrayBuffer>): string {
   return btoa(String.fromCharCode(...salt))
 }
 
-export async function hashCode(code: string, salt: Uint8Array): Promise<string> {
+export async function hashCode(code: string, salt: Uint8Array<ArrayBuffer>): Promise<string> {
   const keyMaterial = await crypto.subtle.importKey(
     'raw',
     new TextEncoder().encode(code),

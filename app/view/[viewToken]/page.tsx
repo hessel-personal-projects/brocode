@@ -28,7 +28,7 @@ export default function ViewPage() {
       return
     }
 
-    let key: Uint8Array
+    let key: Uint8Array<ArrayBuffer>
     try {
       key = fragmentToKey(keyParam)
     } catch {
