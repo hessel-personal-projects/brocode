@@ -79,7 +79,6 @@ export async function POST(req: NextRequest) {
 
   const eventKind = event.eventType ?? event.notificationType ?? ''
   const status = STATUS_MAP[eventKind]
-  console.log('[webhook]', JSON.stringify({ eventKind, messageId: event.mail?.messageId, status }))
   if (status && event.mail?.messageId) {
     await updateDeliveryStatus(event.mail.messageId, status)
   }

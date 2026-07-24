@@ -54,10 +54,7 @@ export async function POST(req: NextRequest) {
       ? sesIdMatch[1]
       : (info.messageId as string).replace(/^<|>$/g, '').replace(/@email\.amazonses\.com$/, '')
     if (body.participantId) {
-      const registered = await registerMessageId(brocode.managementToken, body.participantId, messageId)
-      console.log('[dispatch]', JSON.stringify({ participantId: body.participantId, messageId, registered }))
-    } else {
-      console.log('[dispatch] no participantId — messageId not registered', { messageId })
+      await registerMessageId(brocode.managementToken, body.participantId, messageId)
     }
     return NextResponse.json({ messageId })
   } catch {
