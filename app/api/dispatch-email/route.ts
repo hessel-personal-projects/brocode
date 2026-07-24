@@ -45,8 +45,14 @@ export async function POST(req: NextRequest) {
       html: body.html,
       text: body.text,
     })
-    // Strip angle brackets and @email.amazonses.com suffix to match SES event format
-    const messageId = (info.messageId as string).replace(/^<|>$/g, '').replace(/@email\.amazonses\.com$/, '')
+    // SES SMTP response: "250 Ok <ses-tracking-id> Message accepted"
+    // info.messageId is the email's Message-ID header (Nodemailer-generated), NOT the SES tracking ID.
+    // The SES tracking ID is what appears in SNS events, so we parse it from info.response.
+    const responseStr = typeof info.response === 'string' ? info.response : ''
+    const sesIdMatch = responseStr.match(/^250\s+Ok\s+(\S+)/)
+    const messageId = sesIdMatch
+      ? sesIdMatch[1]
+      : (info.messageId as string).replace(/^<|>$/g, '').replace(/@email\.amazonses\.com$/, '')
     if (body.participantId) {
       const registered = await registerMessageId(brocode.managementToken, body.participantId, messageId)
       console.log('[dispatch]', JSON.stringify({ participantId: body.participantId, messageId, registered }))
