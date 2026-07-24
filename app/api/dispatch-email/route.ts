@@ -48,7 +48,10 @@ export async function POST(req: NextRequest) {
     // Strip angle brackets and @email.amazonses.com suffix to match SES event format
     const messageId = (info.messageId as string).replace(/^<|>$/g, '').replace(/@email\.amazonses\.com$/, '')
     if (body.participantId) {
-      await registerMessageId(brocode.managementToken, body.participantId, messageId)
+      const registered = await registerMessageId(brocode.managementToken, body.participantId, messageId)
+      console.log('[dispatch]', JSON.stringify({ participantId: body.participantId, messageId, registered }))
+    } else {
+      console.log('[dispatch] no participantId — messageId not registered', { messageId })
     }
     return NextResponse.json({ messageId })
   } catch {
