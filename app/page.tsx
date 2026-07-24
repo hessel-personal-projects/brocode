@@ -134,22 +134,14 @@ export default function CreatePage() {
             ? renderCreatorManageHtml({ creatorName: pw.name, code: pw.code, managementUrl: manageUrl, unlockUrl, to: pw.email, title: title || undefined })
             : renderContactCodeHtml({ contactName: pw.name, code: pw.code, unlockUrl, to: pw.email, title: title || undefined })
 
-          const dispatchRes = await fetch('/api/dispatch-email', {
+          await fetch('/api/dispatch-email', {
             method: 'POST',
             headers: {
               'content-type': 'application/json',
               authorization: `Bearer ${managementToken}`,
             },
-            body: JSON.stringify({ to: pw.email, subject, html }),
+            body: JSON.stringify({ to: pw.email, subject, html, participantId: created.id }),
           })
-          if (dispatchRes.ok) {
-            const { messageId } = await dispatchRes.json()
-            await fetch(`/api/brocodes/manage/${managementToken}/participants/${created.id}/message-id`, {
-              method: 'POST',
-              headers: { 'content-type': 'application/json' },
-              body: JSON.stringify({ messageId }),
-            })
-          }
         }
       } catch {
         // Ignore email dispatch errors - navigation should still happen

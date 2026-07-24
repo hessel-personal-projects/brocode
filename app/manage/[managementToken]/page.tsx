@@ -129,22 +129,13 @@ export default function ManagePage() {
         ? renderCreatorManageHtml({ to: email, creatorName: name, code, managementUrl: manageUrl, unlockUrl, title: data?.title ?? undefined })
         : renderContactCodeHtml({ to: email, contactName: name, code, unlockUrl, title: data?.title ?? undefined })
 
-      // 4. Dispatch email
+      // 4. Dispatch email — registers messageId server-side to avoid race with SNS
       const dispatchRes = await fetch('/api/dispatch-email', {
         method: 'POST',
         headers: { 'content-type': 'application/json', authorization: `Bearer ${managementToken}` },
-        body: JSON.stringify({ to: email, subject, html }),
+        body: JSON.stringify({ to: email, subject, html, participantId }),
       })
       if (!dispatchRes.ok) { setNotice('Resend failed'); return }
-
-      const { messageId } = await dispatchRes.json()
-
-      // 5. Register message ID
-      await fetch(`/api/brocodes/manage/${managementToken}/participants/${participantId}/message-id`, {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ messageId }),
-      })
 
       setResentIds((s) => new Set(s).add(participantId))
       setTimeout(() => setResentIds((s) => { const n = new Set(s); n.delete(participantId); return n }), 1500)

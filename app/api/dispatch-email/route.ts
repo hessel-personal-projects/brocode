@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { registerMessageId } from '@/lib/manage'
 import { createSesTransporter } from '@/lib/email/ses'
 
 interface DispatchBody {
@@ -7,6 +8,7 @@ interface DispatchBody {
   subject: string
   html: string
   text?: string
+  participantId?: string
 }
 
 export async function POST(req: NextRequest) {
@@ -45,6 +47,9 @@ export async function POST(req: NextRequest) {
     })
     // Strip angle brackets and @email.amazonses.com suffix to match SES event format
     const messageId = (info.messageId as string).replace(/^<|>$/g, '').replace(/@email\.amazonses\.com$/, '')
+    if (body.participantId) {
+      await registerMessageId(brocode.managementToken, body.participantId, messageId)
+    }
     return NextResponse.json({ messageId })
   } catch {
     return NextResponse.json({ error: 'dispatch failed' }, { status: 502 })
