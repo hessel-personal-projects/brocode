@@ -43,8 +43,8 @@ export async function POST(req: NextRequest) {
       html: body.html,
       text: body.text,
     })
-    // Strip angle brackets from Nodemailer's messageId to match SES event format
-    const messageId = (info.messageId as string).replace(/^<|>$/g, '')
+    // Strip angle brackets and @email.amazonses.com suffix to match SES event format
+    const messageId = (info.messageId as string).replace(/^<|>$/g, '').replace(/@email\.amazonses\.com$/, '')
     return NextResponse.json({ messageId })
   } catch {
     return NextResponse.json({ error: 'dispatch failed' }, { status: 502 })
