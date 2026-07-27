@@ -237,13 +237,14 @@ export default function CreatePage() {
                     Other Operatives (1–10)
                   </legend>
                   {contacts.map((c, i) => (
-                    <div key={i} className="flex gap-2 items-center">
+                    <div key={i} className="flex gap-2 items-start">
                       <span
-                        className="text-xs w-6 shrink-0 tabular-nums"
+                        className="text-xs w-6 shrink-0 tabular-nums pt-2"
                         style={{ color: 'var(--color-phosphor-dim)' }}
                       >
                         [{String(i + 1).padStart(2, '0')}]
                       </span>
+                      <div className="flex flex-col lg:flex-row gap-2 flex-1">
                       <input
                         placeholder="name"
                         value={c.name}
@@ -264,6 +265,7 @@ export default function CreatePage() {
                         className="flex-1 min-w-0 bg-transparent border p-2 text-sm outline-none"
                         style={inputStyle(focused === `ce${i}`)}
                       />
+                      </div>
                       {contacts.length > 1 && (
                         <button
                           type="button"
