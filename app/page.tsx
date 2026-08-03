@@ -17,6 +17,7 @@ import {
   saltToBase64,
   keyToFragment,
 } from '@/lib/client/crypto'
+import { optimizeImage } from '@/lib/client/imageOptimizer'
 import {
   contactCodeSubject,
   renderContactCodeHtml,
@@ -43,6 +44,7 @@ export default function CreatePage() {
   const [contacts, setContacts] = useState<Contact[]>([{ name: '', email: '' }])
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
+  const [busyLabel, setBusyLabel] = useState('ARMING…')
   const [focused, setFocused] = useState<string | null>(null)
 
   function updateContact(i: number, patch: Partial<Contact>) {
@@ -52,30 +54,36 @@ export default function CreatePage() {
   async function submit() {
     setError(null)
     if (!file) return setError('Choose a file')
-    if (file.size > 5 * 1024 * 1024) return setError('Payload exceeds 5 MB limit')
     setBusy(true)
     try {
-      // 1. Encrypt file client-side
-      const { ciphertext, key } = await encryptFile(file)
+      // 1. Optimize image client-side (no-op for video/gif)
+      setBusyLabel('OPTIMIZING…')
+      const optimized = await optimizeImage(file)
+      setBusyLabel('ARMING…')
 
-      // 2. Get signed upload URL from server
+      if (optimized.size > 5 * 1024 * 1024) throw new Error('Payload exceeds 5 MB limit')
+
+      // 2. Encrypt file client-side
+      const { ciphertext, key } = await encryptFile(optimized)
+
+      // 3. Get signed upload URL from server
       const uploadUrlRes = await fetch('/api/brocodes/upload-url', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ contentType: file.type, size: file.size }),
+        body: JSON.stringify({ contentType: optimized.type, size: optimized.size }),
       })
       if (!uploadUrlRes.ok) throw new Error((await uploadUrlRes.json()).error ?? 'upload-url failed')
       const { objectKey, uploadUrl, assetKind } = await uploadUrlRes.json()
 
-      // 3. Upload encrypted file directly to Supabase Storage (bypasses Vercel size limit)
+      // 4. Upload encrypted file directly to Supabase Storage (bypasses Vercel size limit)
       const storageRes = await fetch(uploadUrl, {
         method: 'PUT',
         body: ciphertext,
-        headers: { 'Content-Type': file.type, 'x-upsert': 'false' },
+        headers: { 'Content-Type': optimized.type, 'x-upsert': 'false' },
       })
       if (!storageRes.ok) throw new Error(storageRes.status === 413 ? 'Payload exceeds 5 MB limit' : 'Upload failed')
 
-      // 4. Generate and hash codes for creator + all contacts
+      // 5. Generate and hash codes for creator + all contacts
       const allParticipants = [
         { name: creatorName, email: creatorEmail, role: 'creator' as const },
         ...contacts.map((c) => ({ ...c, role: 'contact' as const })),
@@ -89,7 +97,7 @@ export default function CreatePage() {
         }),
       )
 
-      // 5. POST metadata only to /api/brocodes
+      // 6. POST metadata only to /api/brocodes
       const creator = participantsWithCodes.find((p) => p.role === 'creator')!
       const contactParticipants = participantsWithCodes.filter((p) => p.role === 'contact')
 
@@ -98,7 +106,7 @@ export default function CreatePage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           objectKey,
-          contentType: file.type,
+          contentType: optimized.type,
           assetKind,
           creatorName,
           creatorEmail,
@@ -115,12 +123,12 @@ export default function CreatePage() {
 
       const { managementToken, unlockToken, participants: createdParticipants } = body
 
-      // 4. Construct URLs with key fragment
+      // 7. Construct URLs with key fragment
       const keyFragment = `key=${keyToFragment(key)}`
       const unlockUrl = `${window.location.origin}/unlock/${unlockToken}#${keyFragment}`
       const manageUrl = `${window.location.origin}/manage/${managementToken}#${keyFragment}`
 
-      // 5. Dispatch emails for each participant
+      // 8. Dispatch emails for each participant
       try {
         for (const pw of participantsWithCodes) {
           const created = createdParticipants.find((p: { email: string }) => p.email === pw.email)
@@ -147,10 +155,11 @@ export default function CreatePage() {
         // Ignore email dispatch errors - navigation should still happen
       }
 
-      // 6. Navigate to manage page with key in fragment
+      // 9. Navigate to manage page with key in fragment
       router.push(`/manage/${managementToken}#${keyFragment}`)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed')
+      setBusyLabel('ARMING…')
       setBusy(false)
     }
   }
@@ -159,7 +168,7 @@ export default function CreatePage() {
     <div className="flex flex-col min-h-screen sm:h-screen sm:overflow-hidden">
       <PageHeader
         title="BROCODE LAUNCH SYSTEM v1.0"
-        right={<StatusIndicator label={busy ? 'ARMING…' : 'SYSTEM READY'} color="phosphor" />}
+        right={<StatusIndicator label={busy ? busyLabel : 'SYSTEM READY'} color="phosphor" />}
       />
       <TerminalReveal>
         <motion.div
@@ -305,7 +314,7 @@ export default function CreatePage() {
                 <input
                   required
                   type="file"
-                  accept="image/*,video/*"
+                  accept="image/*,video/*,.heic,.heif"
                   onChange={(e) => setFile(e.target.files?.[0] ?? null)}
                   data-testid="file"
                   className="sr-only"
