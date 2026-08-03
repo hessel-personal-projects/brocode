@@ -46,13 +46,23 @@ export function StationPanel({ name, index, status, active = false }: StationPan
   const c = cfg[status]
   const num = String(index + 1).padStart(2, '0')
 
+  const boxShadow =
+    status === 'authorized'
+      ? '0 0 0 2px var(--color-phosphor), 0 0 32px var(--color-phosphor)'
+      : status === 'detonated'
+        ? '0 0 0 2px var(--color-alert), 0 0 32px var(--color-alert)'
+        : active
+          ? 'inset 0 0 20px rgba(0, 229, 255, 0.1)'
+          : 'none'
+
   return (
     <div
       className="flex flex-col p-4 border h-full"
       style={{
         background: c.bg,
         borderColor: c.border,
-        transition: 'background 0.06s, border-color 0.06s',
+        boxShadow,
+        transition: 'background 0.06s, border-color 0.06s, box-shadow 0.06s',
       }}
     >
       <div
