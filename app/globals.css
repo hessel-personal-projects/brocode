@@ -1,13 +1,13 @@
 @import "tailwindcss";
 
 :root {
-  --color-bg: #080c08;
-  --color-phosphor: #00ff41;
-  --color-phosphor-dim: #00aa2a;
-  --color-phosphor-faint: #1a3a1a;
-  --color-amber: #ffb000;
-  --color-alert: #ff2222;
-  --color-panel-border: #0d2a0d;
+  --color-bg: #0b0804;
+  --color-phosphor: #e0901a;
+  --color-phosphor-dim: #7a4800;
+  --color-phosphor-faint: #170d00;
+  --color-panel-border: #2a1600;
+  --color-amber: #e8c200;
+  --color-alert: #e83a1a;
   --color-crt-scanline: rgba(0, 0, 0, 0.15);
   --color-crt-vignette: rgba(0, 0, 0, 0.6);
 }
@@ -15,11 +15,16 @@
 @theme inline {
   --color-background: var(--color-bg);
   --color-foreground: var(--color-phosphor);
-  --font-mono: var(--font-geist-mono);
+  --font-mono: var(--font-ibm-plex-mono);
+}
+
+@keyframes cursor-blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
 }
 
 body {
   background: var(--color-bg);
   color: var(--color-phosphor);
-  font-family: var(--font-geist-mono), monospace;
+  font-family: var(--font-ibm-plex-mono), monospace;
 }

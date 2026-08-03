@@ -1,7 +1,5 @@
 'use client'
 
-import { motion } from 'framer-motion'
-
 export type StationStatus = 'awaiting' | 'authorized' | 'detonated'
 
 interface StationPanelProps {
@@ -14,21 +12,33 @@ interface StationPanelProps {
 const cfg = {
   awaiting: {
     label: 'AWAITING',
+    bg: 'var(--color-phosphor-faint)',
     border: 'var(--color-panel-border)',
-    text: 'var(--color-phosphor-dim)',
-    glow: 'none',
+    headerText: 'var(--color-phosphor-dim)',
+    nameText: 'var(--color-phosphor)',
+    statusText: 'var(--color-phosphor-dim)',
+    squareFill: 'transparent',
+    squareBorder: 'var(--color-panel-border)',
   },
   authorized: {
     label: 'AUTHORIZED',
+    bg: 'var(--color-phosphor)',
     border: 'var(--color-phosphor)',
-    text: 'var(--color-phosphor)',
-    glow: '0 0 8px var(--color-phosphor), 0 0 24px var(--color-phosphor)',
+    headerText: 'var(--color-bg)',
+    nameText: 'var(--color-bg)',
+    statusText: 'var(--color-bg)',
+    squareFill: 'var(--color-bg)',
+    squareBorder: 'var(--color-bg)',
   },
   detonated: {
     label: 'DETONATED',
+    bg: 'var(--color-alert)',
     border: 'var(--color-alert)',
-    text: 'var(--color-alert)',
-    glow: '0 0 8px var(--color-alert), 0 0 24px var(--color-alert)',
+    headerText: 'var(--color-bg)',
+    nameText: 'var(--color-bg)',
+    statusText: 'var(--color-bg)',
+    squareFill: 'var(--color-bg)',
+    squareBorder: 'var(--color-bg)',
   },
 }
 
@@ -37,54 +47,52 @@ export function StationPanel({ name, index, status, active = false }: StationPan
   const num = String(index + 1).padStart(2, '0')
 
   return (
-    <motion.div
+    <div
       className="flex flex-col p-4 border h-full"
-      style={{ background: 'var(--color-phosphor-faint)' }}
-      animate={{
+      style={{
+        background: c.bg,
         borderColor: c.border,
-        boxShadow:
-          c.glow !== 'none'
-            ? c.glow
-            : active
-              ? 'inset 0 0 16px rgba(0,255,65,0.08)'
-              : 'none',
+        transition: 'background 0.06s, border-color 0.06s',
       }}
-      transition={{ duration: 0.3 }}
     >
       <div
         className="text-xs tracking-widest uppercase mb-2"
-        style={{ color: 'var(--color-phosphor-dim)' }}
+        style={{ color: c.headerText }}
       >
         Station {num}
       </div>
       <div
-        className="font-bold mb-3"
-        style={{ color: 'var(--color-phosphor)', textShadow: '0 0 4px var(--color-phosphor)' }}
+        className="font-bold mb-auto text-sm"
+        style={{ color: c.nameText }}
       >
         {name}
+        {active && status === 'awaiting' && (
+          <span style={{ animation: 'cursor-blink 1s step-end infinite' }}>_</span>
+        )}
       </div>
-      <motion.div
-        className="text-xs tracking-widest uppercase font-bold mb-3"
-        animate={{ color: c.text }}
-        transition={{ duration: 0.15 }}
-        style={{ textShadow: c.glow !== 'none' ? `0 0 4px ${c.text}` : 'none' }}
-      >
-        STATUS: {c.label}
-      </motion.div>
-      <div className="flex gap-1">
-        {[0, 1, 2, 3, 4, 5].map((i) => (
-          <span
-            key={i}
-            className="w-4 h-4 border flex items-center justify-center text-xs"
-            style={{
-              borderColor: status === 'authorized' ? 'var(--color-phosphor)' : 'var(--color-panel-border)',
-              color: status === 'authorized' ? 'var(--color-phosphor)' : 'var(--color-phosphor-dim)',
-            }}
-          >
-            {status === 'authorized' ? '■' : '▣'}
-          </span>
-        ))}
+      <div className="flex items-center justify-between mt-3">
+        <div className="flex gap-1">
+          {[0, 1, 2, 3, 4, 5].map((i) => (
+            <span
+              key={i}
+              className="w-3 h-3 border"
+              style={{
+                borderColor: c.squareBorder,
+                background: c.squareFill,
+              }}
+            />
+          ))}
+        </div>
+        <span
+          className="text-sm font-bold tracking-wider uppercase"
+          style={{
+            color: c.statusText,
+            fontFamily: 'var(--font-display)',
+          }}
+        >
+          {c.label}
+        </span>
       </div>
-    </motion.div>
+    </div>
   )
 }
