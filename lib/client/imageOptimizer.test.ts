@@ -98,4 +98,11 @@ describe('optimizeImage', () => {
     const result = await optimizeImage(file)
     expect(result).toBe(file)
   })
+
+  it('falls back to original file when convertToBlob rejects', async () => {
+    mockConvertToBlob.mockRejectedValueOnce(new Error('encoding failed'))
+    const file = new File(['data'], 'photo.jpg', { type: 'image/jpeg' })
+    const result = await optimizeImage(file)
+    expect(result).toBe(file)
+  })
 })
