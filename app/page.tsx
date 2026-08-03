@@ -54,6 +54,7 @@ export default function CreatePage() {
   async function submit() {
     setError(null)
     if (!file) return setError('Choose a file')
+    if (file.size > 8 * 1024 * 1024) return setError('File too large — maximum raw size is 8 MB')
     setBusy(true)
     try {
       // 1. Optimize image client-side (no-op for video/gif)
