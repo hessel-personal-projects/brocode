@@ -8,7 +8,7 @@
   --color-panel-border: #003a52;
   --color-amber: #ffaa00;
   --color-alert: #ff2200;
-  --color-crt-scanline: rgba(0, 0, 0, 0.22);
+  --color-crt-scanline: rgba(0, 0, 0, 0.10);
   --color-crt-vignette: rgba(0, 0, 0, 0.65);
 }
 

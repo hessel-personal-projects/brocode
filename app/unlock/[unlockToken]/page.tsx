@@ -1,12 +1,11 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { Fragment, useCallback, useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { AnimatePresence, motion } from 'framer-motion'
 import { Countdown } from '@/app/components/Countdown'
 import { PageHeader } from '@/app/components/PageHeader'
 import { Panel } from '@/app/components/Panel'
-import { StationPanel, type StationStatus } from '@/app/components/StationPanel'
 import { CodeInput } from '@/app/components/CodeInput'
 import { GlowButton } from '@/app/components/GlowButton'
 import { TerminalReveal } from '@/app/components/TerminalReveal'
@@ -20,12 +19,6 @@ type UnlockState =
   | { status: 'detonated'; lockedUntil: string }
   | { status: 'unlocked'; viewToken: string }
   | { status: 'notfound' }
-
-function gridClass(count: number) {
-  if (count <= 2) return 'grid-cols-1'
-  if (count <= 4) return 'grid-cols-2'
-  return 'grid-cols-2 sm:grid-cols-3'
-}
 
 export default function UnlockRitual() {
   const { unlockToken } = useParams<{ unlockToken: string }>()
@@ -67,7 +60,6 @@ export default function UnlockRitual() {
       if (next.status === 'detonated') {
         setDetonating(true)
         const msg = '⚠ DETONATION DETECTED'
-        // type in the message character by character
         for (let i = 1; i <= msg.length; i++) {
           setDetonationText(msg.slice(0, i))
           await new Promise((r) => setTimeout(r, 30))
@@ -171,7 +163,10 @@ export default function UnlockRitual() {
   }
 
   // in_progress state
-  const progress = state.matchedCount / state.total
+  const activeIdx = state.participants.findIndex(
+    (p, i) => !p.matched && state.participants.slice(0, i).every((pp) => pp.matched)
+  )
+  const activeParticipant = activeIdx >= 0 ? state.participants[activeIdx] : null
 
   return (
     <motion.div
@@ -193,7 +188,7 @@ export default function UnlockRitual() {
         )}
       </AnimatePresence>
 
-      {/* Detonation typewriter — visible while still in in_progress state */}
+      {/* Detonation typewriter overlay */}
       {detonating && detonationText && (
         <motion.div
           className="fixed inset-0 flex items-center justify-center pointer-events-none"
@@ -213,46 +208,102 @@ export default function UnlockRitual() {
       <PageHeader
         title="AUTHORIZATION TERMINAL"
         right={
-          <div className="flex items-center gap-4">
-            {/* sr-only span: E2E checks toContainText('X of Y'), visual span shows mission control format */}
+          <div className="flex items-center gap-3">
             <span data-testid="progress" className="sr-only">
               {state.matchedCount} of {state.total}
             </span>
-            <span className="text-xs tracking-widest uppercase" style={{ color: 'var(--color-phosphor)' }}>
-              [{state.matchedCount}/{state.total} AUTHORIZED]
+            <span className="text-xs tabular-nums" style={{ color: 'var(--color-phosphor-dim)' }}>
+              {state.matchedCount} / {state.total} authorized
             </span>
-            <div className="hidden sm:block w-32 h-0.5 relative" style={{ background: 'var(--color-panel-border)' }}>
-              <motion.div
-                className="absolute inset-y-0 left-0"
-                style={{ background: 'var(--color-phosphor)', boxShadow: '0 0 6px var(--color-phosphor)' }}
-                animate={{ width: `${progress * 100}%` }}
-                transition={{ duration: 0.4 }}
-              />
-            </div>
           </div>
         }
       />
 
       <TerminalReveal>
         <div className="flex-1 flex flex-col overflow-hidden">
-          <div className={`flex-1 grid ${gridClass(state.participants.length)} overflow-auto`}>
+
+          {/* sr-only participant testids for E2E */}
+          {state.participants.map((p) => (
+            <span key={p.id} data-testid={`participant-${p.name}`} className="sr-only">
+              {p.name} {p.matched ? 'authorized' : 'awaiting'}
+            </span>
+          ))}
+
+          {/* Constellation progress */}
+          <div className="flex items-center px-8 pt-8 pb-2" style={{ gap: 0 }}>
             {state.participants.map((p, i) => {
-              let status: StationStatus = 'awaiting'
-              if (detonating) status = 'detonated'
-              else if (p.matched) status = 'authorized'
-              const isNext = !p.matched && state.participants.slice(0, i).every((pp) => pp.matched)
+              const isAuth = !detonating && p.matched
+              const isDet = detonating
+              const prevAuth = i > 0 && state.participants[i - 1].matched && !detonating
               return (
-                <div key={p.id} data-testid={`participant-${p.name}`}>
-                  <StationPanel name={p.name} index={i} status={status} active={isNext} />
-                </div>
+                <Fragment key={p.id}>
+                  {i > 0 && (
+                    <div
+                      className="h-px flex-1 transition-all duration-500"
+                      style={{
+                        background: isDet
+                          ? 'var(--color-alert)'
+                          : prevAuth
+                            ? 'var(--color-phosphor)'
+                            : 'var(--color-panel-border)',
+                        boxShadow: prevAuth && !isDet ? '0 0 4px var(--color-phosphor)' : 'none',
+                      }}
+                    />
+                  )}
+                  <div
+                    className="w-2.5 h-2.5 rounded-full border shrink-0 transition-all duration-500"
+                    style={{
+                      borderColor: isDet
+                        ? 'var(--color-alert)'
+                        : isAuth
+                          ? 'var(--color-phosphor)'
+                          : i === activeIdx
+                            ? 'var(--color-phosphor)'
+                            : 'var(--color-panel-border)',
+                      background: isDet
+                        ? 'var(--color-alert)'
+                        : isAuth
+                          ? 'var(--color-phosphor)'
+                          : 'transparent',
+                      boxShadow: isAuth && !isDet
+                        ? '0 0 8px var(--color-phosphor)'
+                        : isDet
+                          ? '0 0 8px var(--color-alert)'
+                          : 'none',
+                    }}
+                  />
+                </Fragment>
               )
             })}
           </div>
 
-          <div
-            className="shrink-0 p-4 border-t flex items-center gap-4"
-            style={{ borderColor: 'var(--color-panel-border)' }}
-          >
+          {/* Active operative + code input */}
+          <div className="flex-1 flex flex-col items-center justify-center gap-8 px-6">
+            <div className="text-center">
+              <div
+                className="text-xs tracking-widest uppercase mb-4"
+                style={{ color: 'var(--color-phosphor-dim)' }}
+              >
+                {detonating ? 'Authentication failed' : 'Awaiting authorization'}
+              </div>
+              {activeParticipant && !detonating && (
+                <motion.div
+                  key={activeParticipant.id}
+                  initial={{ opacity: 0, y: 4 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3 }}
+                  className="text-2xl sm:text-3xl font-bold"
+                  style={{
+                    color: 'var(--color-phosphor)',
+                    textShadow: '0 0 6px var(--color-phosphor)',
+                  }}
+                >
+                  {activeParticipant.name}
+                  <span style={{ animation: 'cursor-blink 1s step-end infinite' }}>_</span>
+                </motion.div>
+              )}
+            </div>
+
             <CodeInput
               value={code}
               onChange={setCode}
@@ -260,23 +311,29 @@ export default function UnlockRitual() {
               disabled={busy || detonating}
               data-testid="code"
             />
-            {/* sr-only button preserves data-testid="enter" for E2E click() compat */}
-            <button
-              data-testid="enter"
-              onClick={() => submit(code)}
-              disabled={busy}
-              className="sr-only"
-            >
-              Enter
-            </button>
+
+            <p className="text-xs text-center" style={{ color: 'var(--color-phosphor-dim)' }}>
+              One wrong code triggers a 24-hour lockout.
+            </p>
           </div>
 
-          <p
-            className="px-4 pb-2 text-xs tracking-widest"
-            style={{ color: 'var(--color-phosphor-dim)' }}
+          {/* Session countdown */}
+          <div className="shrink-0 px-8 pb-6 flex items-center justify-between">
+            <span className="text-xs" style={{ color: 'var(--color-phosphor-dim)' }}>
+              Session expires in
+            </span>
+            <Countdown until={state.expiresAt} />
+          </div>
+
+          {/* sr-only submit button for E2E click() compat */}
+          <button
+            data-testid="enter"
+            onClick={() => submit(code)}
+            disabled={busy}
+            className="sr-only"
           >
-            One wrong code locks this for 24 hours. No retries.
-          </p>
+            Enter
+          </button>
         </div>
       </TerminalReveal>
     </motion.div>
