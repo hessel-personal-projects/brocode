@@ -8,8 +8,13 @@ export function middleware(req: NextRequest) {
 
   const { pathname } = req.nextUrl
 
-  // Login page always accessible
-  if (pathname === '/login') return NextResponse.next()
+  // Login page and ceremony routes always accessible — ceremony URLs are
+  // already protected by their own tokens (unlockToken, viewToken)
+  if (
+    pathname === '/login' ||
+    pathname.startsWith('/unlock/') ||
+    pathname.startsWith('/view/')
+  ) return NextResponse.next()
 
   const cookie = req.cookies.get(COOKIE)
   if (cookie?.value === process.env.ACCESS_PASSWORD) return NextResponse.next()
