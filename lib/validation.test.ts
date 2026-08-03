@@ -7,6 +7,8 @@ describe('assetInfoFor', () => {
     expect(assetInfoFor('image/jpeg')?.kind).toBe('image')
     expect(assetInfoFor('image/gif')?.kind).toBe('image')
     expect(assetInfoFor('image/webp')?.kind).toBe('image')
+    expect(assetInfoFor('image/heic')).toEqual({ kind: 'image', ext: 'heic' })
+    expect(assetInfoFor('image/heif')).toEqual({ kind: 'image', ext: 'heif' })
   })
   it('maps allowed video types', () => {
     expect(assetInfoFor('video/mp4')).toEqual({ kind: 'video', ext: 'mp4' })

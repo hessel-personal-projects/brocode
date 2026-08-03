@@ -9,6 +9,8 @@ const CONTENT_TYPES: Record<string, { kind: AssetKind; ext: string }> = {
   'image/png': { kind: 'image', ext: 'png' },
   'image/gif': { kind: 'image', ext: 'gif' },
   'image/webp': { kind: 'image', ext: 'webp' },
+  'image/heic': { kind: 'image', ext: 'heic' },
+  'image/heif': { kind: 'image', ext: 'heif' },
   'video/mp4': { kind: 'video', ext: 'mp4' },
   'video/webm': { kind: 'video', ext: 'webm' },
 }
